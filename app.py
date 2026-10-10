@@ -86,6 +86,10 @@ h2, h3 { font-size:1.1rem !important; line-height:1.3 !important; padding:0 !imp
 .hud .grow { flex:1; }
 .panel { border:2px solid #3b3562; border-radius:6px; padding:10px 14px; background:#1b1736; }
 .fb-ok, .fb-no { font-size:.95rem; }
+@keyframes ebFade { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+[class*="st-key-scr-"] { animation: ebFade .4s ease-out both; }
+[data-stale="true"] { opacity:1 !important; transition:none !important; }
+@media (prefers-reduced-motion: reduce) { [class*="st-key-scr-"] { animation:none; } }
 .mini { font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:#a7a1c9; line-height:1.1; }
 .mv { font-size:1.25rem; font-weight:700; color:#f0ecff; line-height:1.3; }
 .big { font-family:'Bungee','Arial Black',sans-serif; font-size:3rem; line-height:1; color:#f4c95d; }
@@ -116,7 +120,7 @@ def hero_svg(kind):
             '<rect x="-9" y="-3" width="7" height="7" rx="2" fill="#12101c"/><rect x="2" y="-3" width="7" height="7" rx="2" fill="#12101c"/>')
 
 
-def scene_html(zone, n, stone, door_open, splash_pit, remaining=None):
+def scene_html(zone, n, stone, door_open, splash_pit, remaining=None, from_stone=None):
     """SVG scene. stone = stone the heroes stand on, splash_pit = pit with bubbles (wrong answer)."""
     W, H, gy = 800, 170, 108
     sp = 660 / n
@@ -149,7 +153,13 @@ def scene_html(zone, n, stone, door_open, splash_pit, remaining=None):
     s.append(f'<rect x="{dx - 22}" y="{gy - 70}" width="44" height="70" rx="4" fill="#12101c" stroke="{GOLD}" stroke-width="3"/>')
     s.append(f'<rect x="{dx + 18 - door_w}" y="{gy - 66}" width="{door_w}" height="66" fill="{GOLD}" opacity=".92"/>')
     for kind, sign in (("ember", -1), ("tide", 1)):
-        s.append(f'<g transform="translate({xs[stone] + sign * off},{gy}) scale({scale})">{hero_svg(kind)}</g>')
+        x_to = xs[stone] + sign * off
+        anim = ""
+        if from_stone is not None and from_stone != stone:
+            x_from = xs[from_stone] + sign * off
+            anim = (f'<animateTransform attributeName="transform" type="translate" from="{x_from} {gy}" to="{x_to} {gy}" '
+                    'dur="0.6s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".4 0 .2 1"/>')
+        s.append(f'<g transform="translate({x_to},{gy})">{anim}<g transform="scale({scale})">{hero_svg(kind)}</g></g>')
     s.append("</svg>")
     return "<body style='margin:0;background:transparent'>" + "".join(s) + "</body>"
 
@@ -403,10 +413,11 @@ def render_run():
     st.markdown(CSS, unsafe_allow_html=True)
     z, n, k = zone_info(run, run["i"])
     cur = run["cur"]
-    stone, door_open, splash = k, False, None
+    stone, door_open, splash, from_stone = k, False, None, None
     if run["phase"] == "fb" and cur and cur["result"]:
         if cur["result"]["ok"]:
             stone = k + 1
+            from_stone = k
             door_open = stone == n
         else:
             splash = k
@@ -429,7 +440,7 @@ def render_run():
 
     left, right = st.columns([3, 2], gap="medium")
     with left:
-        show_html(scene_html(z, n, stone, door_open, splash), height=160)
+        show_html(scene_html(z, n, stone, door_open, splash, from_stone=from_stone), height=160)
 
     q = QUESTIONS[cur["qid"]]
     hero = "Ember" if k % 2 == 0 else "Tide"
@@ -622,18 +633,25 @@ def render_result():
 
 
 # ----------------------------------------------------------------------------
+def screen_key(S):
+    if S.screen == "run" and "run" in S:
+        r = S.run
+        return f"scr-run-{r['i']}-{r['nonce']}-{r['phase']}"
+    return f"scr-{S.screen}"
+
+
 def main():
     S = st.session_state
     S.setdefault("screen", "title")
-    if S.screen == "title":
-        render_title()
-    elif S.screen == "run" and "run" in S:
-        render_run()
-    elif S.screen == "result" and "run" in S:
-        render_result()
-    else:
+    if S.screen in ("run", "result") and "run" not in S:
         S.screen = "title"
-        render_title()
+    with st.container(key=screen_key(S)):
+        if S.screen == "title":
+            render_title()
+        elif S.screen == "run":
+            render_run()
+        elif S.screen == "result":
+            render_result()
 
 
 main()
