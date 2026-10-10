@@ -67,11 +67,13 @@ CSS = """
 /* ---- one-screen shell: no page scroll, no Streamlit chrome ------------------ */
 html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"], [data-testid="stMain"] {
   height: 100vh; overflow: hidden !important; }
+[data-testid="stMain"] { overflow-y: auto !important; }
 [data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stSidebar"],
 [data-testid="collapsedControl"], [data-testid="stSidebarCollapsedControl"], footer, #MainMenu { display: none !important; }
 [data-testid="stMainBlockContainer"], .block-container {
-  padding: 1.4vh 2.4rem 1vh !important; max-width: 1240px !important; height: 100vh; overflow: hidden; }
-[data-testid="stVerticalBlock"] { gap: 1.8vh !important; }
+  padding: clamp(14px, 3vh, 28px) 2.4rem clamp(18px, 4vh, 36px) !important; max-width: 1240px !important;
+  height: auto; min-height: 100vh; box-sizing: border-box; overflow: visible; }
+[data-testid="stVerticalBlock"] { gap: clamp(10px, 1.7vh, 18px) !important; }
 [data-stale="true"] { opacity: 1 !important; }                 /* no grey flash while a rerun is in flight */
 .stMarkdown p { margin: 0 0 .25rem 0; }
 @media (max-width: 760px), (max-height: 560px) {                /* phones and tiny windows: allow scrolling */
@@ -90,7 +92,7 @@ html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"], [data-tes
 h1, h2, h3 { font-family: 'Bungee', 'Arial Black', sans-serif !important; font-weight: 400 !important;
              letter-spacing: .01em; padding: 0 !important; margin: .6vh 0 1.2vh 0 !important; line-height: 1.2 !important; }
 [data-testid="stHeading"] { margin-bottom: 1vh; }
-.tide-title { margin-top: 1.4vh !important; }
+.tide-title { margin: 1vh 0 .4vh 0 !important; }
 h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1.4rem, 4vh, 2.2rem) !important; } h3 { font-size: clamp(1.1rem, 2.8vh, 1.6rem) !important; }
 .tide-title b { color: #ff7a3d; font-weight: 400; } .tide-title i { color: #35c6d9; font-style: normal; }
 .qtext { font-size: clamp(1.05rem, 3.1vh, 1.7rem); line-height: 1.35; white-space: pre-wrap; margin: .4vh 0 .6vh 0;
@@ -129,17 +131,17 @@ h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1
 [data-testid="stTextInput"] input, [data-baseweb="select"] > div { min-height: clamp(2.3rem, 5.4vh, 3.2rem); font-size: clamp(.95rem, 2.2vh, 1.2rem); }
 
 /* ---- fill the window: everything is sized from the viewport height ---------- */
-.scn { width:100%; aspect-ratio:1000/167; max-height:30vh; min-height:110px; background:#161330; border-radius:8px; overflow:hidden; }
+.scn { width:100%; aspect-ratio:1000/167; max-height:27vh; min-height:110px; background:#161330; border-radius:8px; overflow:hidden; }
 .scn svg { display:block; width:100%; height:100%; }
-[class*="st-key-scene_title"] .scn { max-height:24vh; }
+[class*="st-key-scene_title"] .scn { max-height:20vh; }
 .gph { width:100%; height:26vh; min-height:140px; }
 .gph svg { display:block; width:100%; height:100%; background:#12101c; border:2px solid #3b3562; border-radius:8px; box-sizing:border-box; }
 
-[class*="st-key-panel"] { --ph: 46vh; min-height: var(--ph) !important; box-sizing: border-box;
-  border: 1px solid #3b3562 !important; border-radius: 10px; background: #161330; padding: 2.4vh 1.8rem !important; gap: 1.8vh;
+[class*="st-key-panel"] { --ph: 44vh; min-height: var(--ph) !important; box-sizing: border-box;
+  border: 1px solid #3b3562 !important; border-radius: 10px; background: #161330; padding: clamp(14px, 2.6vh, 26px) 1.8rem !important; gap: clamp(10px, 1.7vh, 18px);
   display: flex !important; flex-direction: column; }
-[class*="st-key-panel_t_"] { --ph: 42vh; }
-[class*="st-key-panel_xl"] { --ph: 84vh; }
+[class*="st-key-panel_t_"] { --ph: 36vh; }
+[class*="st-key-panel_xl"] { --ph: 80vh; }
 [data-testid="stHorizontalBlock"] { align-items: stretch !important; }
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] { height: 100%; }
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > div:has(> [class*="st-key-panel"]) { flex: 1; display: flex; flex-direction: column; }
@@ -446,12 +448,13 @@ def render_title():
         left, right = st.columns([3, 2], gap="medium")
         with left:
             with st.container(key="panel_t_l"):
-                S.name = st.text_input("Hero name for the leaderboard", value=S.get("name", ""), max_chars=18)
-                S.level = st.radio("Pick a level", list(LEVELS), index=list(LEVELS).index(S.get("level", "Medium")),
-                                   format_func=lambda k: f"{k}  ({run_size(k, S.get('zone', 0))} questions)", horizontal=True)
-                st.caption(LEVELS[S.level]["text"])
+                c1, c2 = st.columns(2, gap="medium")
+                S.name = c1.text_input("Hero name for the leaderboard", value=S.get("name", ""), max_chars=18)
                 names = {0: "All chambers", **{z: f"{z}. {ZONES[z][0]}" for z in ZONES}}
-                S.zone = st.selectbox("Pick where to play", list(names), format_func=lambda z: names[z], index=S.get("zone", 0))
+                S.zone = c2.selectbox("Pick where to play", list(names), format_func=lambda z: names[z], index=S.get("zone", 0))
+                S.level = st.radio("Pick a level", list(LEVELS), index=list(LEVELS).index(S.get("level", "Medium")),
+                                   format_func=lambda k: f"{k} ({run_size(k, S.zone)})", horizontal=True)
+                st.caption(f"{LEVELS[S.level]['text']}  ·  {run_size(S.level, S.zone)} questions")
                 if st.button("Enter the temple", type="primary"):
                     start_run()
                     st.rerun()
