@@ -77,7 +77,8 @@ html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"], [data-tes
 [data-stale="true"] { opacity: 1 !important; }                 /* no grey flash while a rerun is in flight */
 [data-testid="stMarkdownContainer"], [data-testid="stMarkdown"] { margin: 0 !important; }
 .stMarkdown p { margin: 0 0 .25rem 0; }
-.scn, .gph, .hud, .tip { margin: 0; }
+.hud, .tip { margin: 0; }
+.scn, .gph { margin: 0 0 clamp(14px, 2.6vh, 28px) 0; }
 @media (max-width: 760px), (max-height: 560px) {                /* phones and tiny windows: allow scrolling */
   html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"], [data-testid="stMain"] { overflow: auto !important; height: auto; }
   [data-testid="stMainBlockContainer"], .block-container { height: auto; overflow: visible; }
@@ -133,17 +134,17 @@ h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1
 [data-testid="stTextInput"] input, [data-baseweb="select"] > div { min-height: clamp(2.3rem, 5.4vh, 3.2rem); font-size: clamp(.95rem, 2.2vh, 1.2rem); }
 
 /* ---- fill the window: everything is sized from the viewport height ---------- */
-.scn { width:100%; aspect-ratio:1000/167; max-height:27vh; min-height:110px; background:#161330; border-radius:8px; overflow:hidden; }
+.scn { width:100%; aspect-ratio:1000/167; max-height:26vh; min-height:110px; background:#161330; border-radius:8px; overflow:hidden; }
 .scn svg { display:block; width:100%; height:100%; }
 [class*="st-key-scene_title"] .scn { max-height:20vh; }
 .gph { width:100%; height:26vh; min-height:140px; }
 .gph svg { display:block; width:100%; height:100%; background:#12101c; border:2px solid #3b3562; border-radius:8px; box-sizing:border-box; }
 
-[class*="st-key-panel"] { --ph: 49vh; min-height: var(--ph) !important; box-sizing: border-box;
+[class*="st-key-panel"] { --ph: 45vh; min-height: var(--ph) !important; box-sizing: border-box; margin-top: clamp(16px, 3vh, 32px) !important;
   border: 1px solid #3b3562 !important; border-radius: 10px; background: #161330; padding: clamp(14px, 2.6vh, 26px) 1.8rem !important; gap: clamp(10px, 1.7vh, 18px);
   display: flex !important; flex-direction: column; }
-[class*="st-key-panel_t_"] { --ph: 40vh; }
-[class*="st-key-panel_xl"] { --ph: 82vh; }
+[class*="st-key-panel_t_"] { --ph: 38vh; }
+[class*="st-key-panel_xl"] { --ph: 78vh; }
 [data-testid="stHorizontalBlock"] { align-items: stretch !important; }
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] { height: 100%; }
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > div:has(> [class*="st-key-panel"]) { flex: 1; display: flex; flex-direction: column; }
