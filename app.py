@@ -70,8 +70,8 @@ html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"], [data-tes
 [data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stSidebar"],
 [data-testid="collapsedControl"], [data-testid="stSidebarCollapsedControl"], footer, #MainMenu { display: none !important; }
 [data-testid="stMainBlockContainer"], .block-container {
-  padding: .6rem 1.4rem .4rem !important; max-width: 1600px !important; height: 100vh; overflow: hidden; }
-[data-testid="stVerticalBlock"] { gap: 1.1vh !important; }
+  padding: 1.4vh 2.4rem 1vh !important; max-width: 1240px !important; height: 100vh; overflow: hidden; }
+[data-testid="stVerticalBlock"] { gap: 1.8vh !important; }
 [data-stale="true"] { opacity: 1 !important; }                 /* no grey flash while a rerun is in flight */
 .stMarkdown p { margin: 0 0 .25rem 0; }
 @media (max-width: 760px), (max-height: 560px) {                /* phones and tiny windows: allow scrolling */
@@ -88,7 +88,9 @@ html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"], [data-tes
 
 /* ---- type ---------------------------------------------------------------- */
 h1, h2, h3 { font-family: 'Bungee', 'Arial Black', sans-serif !important; font-weight: 400 !important;
-             letter-spacing: .01em; padding: 0 !important; margin: 0 !important; line-height: 1.1 !important; }
+             letter-spacing: .01em; padding: 0 !important; margin: .6vh 0 1.2vh 0 !important; line-height: 1.2 !important; }
+[data-testid="stHeading"] { margin-bottom: 1vh; }
+.tide-title { margin-top: 1.4vh !important; }
 h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1.4rem, 4vh, 2.2rem) !important; } h3 { font-size: clamp(1.1rem, 2.8vh, 1.6rem) !important; }
 .tide-title b { color: #ff7a3d; font-weight: 400; } .tide-title i { color: #35c6d9; font-style: normal; }
 .qtext { font-size: clamp(1.05rem, 3.1vh, 1.7rem); line-height: 1.35; white-space: pre-wrap; margin: .4vh 0 .6vh 0;
@@ -127,20 +129,25 @@ h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1
 [data-testid="stTextInput"] input, [data-baseweb="select"] > div { min-height: clamp(2.3rem, 5.4vh, 3.2rem); font-size: clamp(.95rem, 2.2vh, 1.2rem); }
 
 /* ---- fill the window: everything is sized from the viewport height ---------- */
-.scn { width:100%; height:28vh; min-height:120px; background:#161330; border-radius:8px; overflow:hidden; }
+.scn { width:100%; aspect-ratio:1000/167; max-height:30vh; min-height:110px; background:#161330; border-radius:8px; overflow:hidden; }
 .scn svg { display:block; width:100%; height:100%; }
-[class*="st-key-scene_title"] .scn { height:22vh; }
+[class*="st-key-scene_title"] .scn { max-height:24vh; }
 .gph { width:100%; height:26vh; min-height:140px; }
 .gph svg { display:block; width:100%; height:100%; background:#12101c; border:2px solid #3b3562; border-radius:8px; box-sizing:border-box; }
 
 [class*="st-key-panel"] { --ph: 46vh; min-height: var(--ph) !important; box-sizing: border-box;
-  border: 1px solid #3b3562 !important; border-radius: 10px; background: #161330; padding: 2vh 1.4rem !important;
+  border: 1px solid #3b3562 !important; border-radius: 10px; background: #161330; padding: 2.4vh 1.8rem !important; gap: 1.8vh;
   display: flex !important; flex-direction: column; }
-[class*="st-key-panel_t_"] { --ph: 40vh; }
+[class*="st-key-panel_t_"] { --ph: 42vh; }
 [class*="st-key-panel_xl"] { --ph: 84vh; }
+[data-testid="stHorizontalBlock"] { align-items: stretch !important; }
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"] { height: 100%; }
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"] > div:has(> [class*="st-key-panel"]) { flex: 1; display: flex; flex-direction: column; }
+[data-testid="stColumn"] [class*="st-key-panel"] { flex: 1; }
 [class*="st-key-panel_l"] { justify-content: space-between; }
 [class*="st-key-panel_r"], [class*="st-key-panel_c"] { justify-content: center; }
 [class*="st-key-panel"] .stMarkdown p { font-size: clamp(1rem, 2.4vh, 1.3rem); }
+[class*="st-key-panel"] [data-testid="stCaptionContainer"] { margin-bottom: .6vh; }
 .tide-title { font-size: clamp(2.2rem, 6.4vh, 3.6rem) !important; }
 
 /* ---- scene animation (inline SVG, so the page CSS drives it) ------------------ */
