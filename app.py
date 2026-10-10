@@ -15,7 +15,7 @@ import streamlit.components.v1 as components
 
 from questions import QUESTIONS
 
-st.set_page_config(page_title="Ember and Tide", layout="centered")
+st.set_page_config(page_title="Ember and Tide", layout="wide", initial_sidebar_state="collapsed")
 
 # ----------------------------------------------------------------------------
 # Game data
@@ -65,6 +65,28 @@ h1, h2, h3 { font-family: 'Bungee', 'Arial Black', sans-serif !important; font-w
 .fb-ok { border:2px solid #6ee7a0; background:#12291f; padding:12px 14px; border-radius:6px; }
 .fb-no { border:2px solid #ff5d6c; background:#2e121a; padding:12px 14px; border-radius:6px; }
 .tip { border:2px dashed #6b5a22; background:#2c2610; color:#f4c95d; padding:10px 12px; border-radius:6px; }
+
+/* ---- single-screen layout: no header, no sidebar, tight spacing ---- */
+[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"], footer { display:none !important; }
+[data-testid="stSidebar"], [data-testid="collapsedControl"] { display:none !important; }
+.block-container { padding:.7rem 1.6rem .3rem !important; max-width:1240px !important; }
+[data-testid="stVerticalBlock"] { gap:.45rem !important; }
+h1 { font-size:1.8rem !important; line-height:1.1 !important; padding:0 !important; margin:0 !important; }
+h2, h3 { font-size:1.05rem !important; padding:.1rem 0 !important; margin:0 !important; }
+.stButton > button { min-height:2.1rem; padding:.15rem .8rem; }
+[data-testid="stRadio"] [role="radiogroup"] { gap:.1rem; }
+[data-testid="stRadio"] label { padding:.1rem 0; }
+[data-testid="stSelectbox"] label p, [data-testid="stTextInput"] label p { font-size:.85rem; }
+[data-testid="stCaptionContainer"] { margin:0; }
+.qtext { font-size:1.08rem; margin:.1rem 0 .3rem 0; }
+.hud { display:flex; gap:18px; align-items:center; background:#1b1736; border:2px solid #3b3562; border-radius:6px; padding:6px 14px; }
+.hud .lbl { font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:#a7a1c9; display:block; }
+.hud .val { font-size:1.25rem; font-weight:700; color:#f0ecff; }
+.hud .hearts { color:#ff5d6c; letter-spacing:.1em; }
+.hud .grow { flex:1; }
+.panel { border:2px solid #3b3562; border-radius:6px; padding:10px 14px; background:#1b1736; }
+.fb-ok, .fb-no { font-size:.95rem; }
+.big { font-family:'Bungee','Arial Black',sans-serif; font-size:3rem; line-height:1; color:#f4c95d; }
 </style>
 """
 
@@ -94,7 +116,7 @@ def hero_svg(kind):
 
 def scene_html(zone, n, stone, door_open, splash_pit, remaining=None):
     """SVG scene. stone = stone the heroes stand on, splash_pit = pit with bubbles (wrong answer)."""
-    W, H, gy = 800, 200, 130
+    W, H, gy = 800, 170, 108
     sp = 660 / n
     sw = min(72, sp * 0.58)
     xs = [70 + i * sp for i in range(n + 1)]
@@ -175,7 +197,7 @@ def lb_add(entry):
         pass
 
 
-def lb_show(highlight=None):
+def lb_show(height=300):
     board = lb_load()
     if not board:
         st.caption("No runs yet. Finish a run to take first place.")
@@ -183,9 +205,9 @@ def lb_show(highlight=None):
     rows = [{"#": i + 1, "Hero": e["name"], "Level": e["level"], "Accuracy": f'{e["acc"]}%', "Score": e["score"]}
             for i, e in enumerate(board[:8])]
     try:
-        st.dataframe(rows, hide_index=True, width="stretch")
+        st.dataframe(rows, hide_index=True, width="stretch", height=height)
     except TypeError:                      # older Streamlit
-        st.dataframe(rows, hide_index=True, use_container_width=True)
+        st.dataframe(rows, hide_index=True, use_container_width=True, height=height)
 
 
 # ----------------------------------------------------------------------------
@@ -317,59 +339,63 @@ def render_title():
     S = st.session_state
     st.markdown(CSS, unsafe_allow_html=True)
     st.markdown("<h1 class='tide-title'><b>Ember</b> and <i>Tide</i></h1>", unsafe_allow_html=True)
-    st.write("Two heroes, six chambers, one temple of AI concepts. Ember cannot touch water and Tide cannot touch lava. "
-             "Each question is a pit. Answer right and your heroes cross. Answer wrong and one of them takes a swim in the wrong liquid.")
+    st.caption("Two heroes, six chambers, one temple of AI concepts. Ember cannot touch water and Tide cannot touch lava. "
+               "Each question is a pit: answer right and your heroes cross, answer wrong and one takes a swim in the wrong liquid.")
     left, right = st.columns([3, 2], gap="large")
     with left:
-        S.name = st.text_input("Hero name for the leaderboard", value=S.get("name", ""), max_chars=18)
-        S.level = st.radio("Pick a level", list(LEVELS), index=list(LEVELS).index(S.get("level", "Medium")),
-                           format_func=lambda k: f"{k}  ({run_size(k, S.get('zone', 0))} questions)", horizontal=True)
-        st.caption(LEVELS[S.level]["text"])
+        show_html(scene_html(1, 6, 0, False, None), height=160)
+        a, b = st.columns(2)
+        S.name = a.text_input("Hero name for the leaderboard", value=S.get("name", ""), max_chars=18)
         names = {0: "All chambers", **{z: f"{z}. {ZONES[z][0]}" for z in ZONES}}
-        S.zone = st.selectbox("Pick where to play", list(names), format_func=lambda z: names[z], index=S.get("zone", 0))
+        S.zone = b.selectbox("Pick where to play", list(names), format_func=lambda z: names[z], index=S.get("zone", 0))
+        S.level = st.radio("Pick a level", list(LEVELS), index=list(LEVELS).index(S.get("level", "Medium")),
+                           format_func=lambda k: f"{k} ({run_size(k, S.zone)})", horizontal=True)
+        st.caption(LEVELS[S.level]["text"])
         if st.button("Enter the temple", type="primary"):
             start_run()
             st.rerun()
     with right:
         st.subheader("Leaderboard")
-        lb_show()
-        st.caption(f"{len(QUESTIONS)} questions · 7 formats · four lifelines per run: Hint, Cull, Freeze, Swap")
+        lb_show(height=285)
+        st.markdown(f"<div class='panel'><b>{len(QUESTIONS)} questions</b> in 7 formats.<br>"
+                    "Four lifelines per run: <b>Hint</b>, <b>Cull</b>, <b>Freeze</b> and <b>Swap</b>.</div>",
+                    unsafe_allow_html=True)
 
 
-def sidebar_hud(run):
-    sb = st.sidebar
-    sb.markdown("### Ember & Tide")
-    sb.markdown(f"**Lives** &nbsp; <span style='color:#ff5d6c;font-size:1.3rem'>{hearts_text(run)}</span>", unsafe_allow_html=True)
-    sb.metric("Score", run["score"])
-    sb.metric("Streak", run["streak"])
-    sb.caption(f"Level: {run['level']}")
-    if not run["leave"]:
-        if sb.button("Menu"):
-            run["leave"] = True
-            st.rerun()
-    else:
-        sb.warning("Leave this run?")
-        a, b = sb.columns(2)
-        if a.button("Leave"):
+def top_hud(run, z):
+    """One compact strip across the top (replaces the sidebar so the page uses its full width)."""
+    if run["leave"]:
+        c = st.columns([5, 1, 1])
+        c[0].warning("Leave this run? Your progress will be lost.")
+        if c[1].button("Leave"):
             st.session_state.screen = "title"
             st.session_state.pop("run", None)
             st.rerun()
-        if b.button("Stay"):
+        if c[2].button("Stay"):
             run["leave"] = False
             st.rerun()
-
-
-def progress_bars(run):
+        return
     total = len(run["deck"])
     answered = len(run["log"])
-    st.progress(answered / total if total else 0, text=f"Question {min(answered + 1, total)} of {total}")
+    c = st.columns([8, 1])
+    c[0].markdown(
+        f"<div class='hud'><div><span class='lbl'>Chamber {z} of 6</span><span class='val'>{ZONES[z][0]}</span></div>"
+        f"<div><span class='lbl'>Lives</span><span class='val hearts'>{hearts_text(run)}</span></div>"
+        f"<div><span class='lbl'>Score</span><span class='val'>{run['score']}</span></div>"
+        f"<div><span class='lbl'>Streak</span><span class='val'>{run['streak']}</span></div>"
+        f"<div class='grow'><span class='lbl'>Question {min(answered + 1, total)} of {total}</span>"
+        f"<div style='height:8px;background:#12101c;border:1px solid #3b3562;border-radius:4px;overflow:hidden;margin-top:4px'>"
+        f"<div style='height:100%;width:{answered / total * 100 if total else 0:.0f}%;background:#35c6d9'></div></div></div></div>",
+        unsafe_allow_html=True)
+    if c[1].button("Menu"):
+        run["leave"] = True
+        st.rerun()
 
 
 def render_run():
     S = st.session_state
     run = S.run
     st.markdown(CSS, unsafe_allow_html=True)
-    sidebar_hud(run)
     z, n, k = zone_info(run, run["i"])
     cur = run["cur"]
     stone, door_open, splash = k, False, None
@@ -379,45 +405,57 @@ def render_run():
             door_open = stone == n
         else:
             splash = k
-    show_html(scene_html(z, n, stone, door_open, splash), height=215)
-    progress_bars(run)
+    top_hud(run, z)
+    left, right = st.columns([3, 2], gap="medium")
+    with left:
+        show_html(scene_html(z, n, stone, door_open, splash), height=160)
 
     if run["phase"] == "intro":
         name, topic, tip = ZONES[z]
-        st.caption(f"CHAMBER {z} OF 6 · {n} PIT{'S' if n > 1 else ''}")
-        st.subheader(name)
-        st.write(topic)
-        st.markdown(f"<div class='tip'>{tip}</div>", unsafe_allow_html=True)
-        if st.button("Enter chamber", type="primary"):
-            init_question(run)
-            st.rerun()
+        with right:
+            st.caption(f"CHAMBER {z} OF 6 · {n} PIT{'S' if n > 1 else ''}")
+            st.subheader(name)
+            st.write(topic)
+            st.markdown(f"<div class='tip'>{tip}</div>", unsafe_allow_html=True)
+            if st.button("Enter chamber", type="primary"):
+                init_question(run)
+                st.rerun()
         return
 
     q = QUESTIONS[cur["qid"]]
     hero = "Ember" if k % 2 == 0 else "Tide"
-    st.markdown(f"<span class='chip fmt'>{q['k']}</span><span class='chip'>{DIFF_LABEL[q['d']]}</span>"
-                f"<span class='chip {hero.lower()}'>{hero}'s turn</span>", unsafe_allow_html=True)
-    if run["phase"] == "ask":
-        remaining = cur["limit"] - (time.time() - cur["start"])
-        show_html(countdown_html(max(0, remaining)), height=34)
-    st.markdown(f"<div class='qtext'>{html.escape(q['q'])}</div>", unsafe_allow_html=True)
-
-    if run["phase"] == "ask":
-        ask(run, q, cur, k)
-    else:
-        feedback(run, q, cur, n)
+    with left:
+        st.markdown(f"<span class='chip fmt'>{q['k']}</span><span class='chip'>{DIFF_LABEL[q['d']]}</span>"
+                    f"<span class='chip {hero.lower()}'>{hero}'s turn</span>", unsafe_allow_html=True)
+        if run["phase"] == "ask":
+            remaining = cur["limit"] - (time.time() - cur["start"])
+            show_html(countdown_html(max(0, remaining)), height=30)
+        st.markdown(f"<div class='qtext'>{html.escape(q['q'])}</div>", unsafe_allow_html=True)
+        if run["phase"] == "ask":
+            ask(run, q, cur, k)
+    with right:
+        if run["phase"] == "ask":
+            if q["mode"] == "g":
+                show_html(graph_html(q), height=252)
+            if cur["hint"]:
+                st.markdown(f"<div class='tip'>Hint: {html.escape(q['h'])} (worth 20 fewer points)</div>", unsafe_allow_html=True)
+            st.caption("Lifelines")
+            lifelines(run, q, cur)
+        else:
+            feedback(run, q, cur, n)
 
 
 def lifelines(run, q, cur):
     L = run["life"]
     can_cull = q["mode"] == "c" and len(q["o"]) > 2 and not cur["culled"]
     can_swap = L["swap"] > 0 and run["spare"].get(zone_info(run, run["i"])[0])
-    c1, c2, c3, c4 = st.columns(4)
-    if c1.button(f"Hint ({L['hint']})", disabled=L["hint"] < 1 or cur["hint"], key=f"hint{run['nonce']}"):
+    r1 = st.columns(2)
+    r2 = st.columns(2)
+    if r1[0].button(f"Hint ({L['hint']})", disabled=L["hint"] < 1 or cur["hint"], key=f"hint{run['nonce']}", use_container_width=True):
         L["hint"] -= 1
         cur["hint"] = True
         st.rerun()
-    if c2.button(f"Cull ({L['cull']})", disabled=L["cull"] < 1 or not can_cull, key=f"cull{run['nonce']}"):
+    if r1[1].button(f"Cull ({L['cull']})", disabled=L["cull"] < 1 or not can_cull, key=f"cull{run['nonce']}", use_container_width=True):
         L["cull"] -= 1
         cur["culled"] = True
         wrong = [o for o in cur["order"] if o != q["a"]]
@@ -425,11 +463,11 @@ def lifelines(run, q, cur):
         drop = set(wrong[:max(1, min(2, len(q["o"]) - 2))])
         cur["order"] = [o for o in cur["order"] if o not in drop]
         st.rerun()
-    if c3.button(f"Freeze +15s ({L['freeze']})", disabled=L["freeze"] < 1, key=f"fr{run['nonce']}"):
+    if r2[0].button(f"Freeze +15s ({L['freeze']})", disabled=L["freeze"] < 1, key=f"fr{run['nonce']}", use_container_width=True):
         L["freeze"] -= 1
         cur["limit"] += 15
         st.rerun()
-    if c4.button(f"Swap ({L['swap']})", disabled=not can_swap, key=f"sw{run['nonce']}"):
+    if r2[1].button(f"Swap ({L['swap']})", disabled=not can_swap, key=f"sw{run['nonce']}", use_container_width=True):
         L["swap"] -= 1
         z = zone_info(run, run["i"])[0]
         new_id = run["spare"][z].pop()
@@ -440,8 +478,6 @@ def lifelines(run, q, cur):
 
 def ask(run, q, cur, k):
     nonce = run["nonce"]
-    if cur["hint"]:
-        st.markdown(f"<div class='tip'>Hint: {html.escape(q['h'])} (worth 20 fewer points)</div>", unsafe_allow_html=True)
     answered, ok, given = False, False, ""
 
     if q["mode"] == "c":
@@ -457,14 +493,14 @@ def ask(run, q, cur, k):
         st.caption("Pick the partner for each item on the left.")
         rights = [q["m"][r][1] for r in cur["right"]]
         picks = []
+        mc = st.columns(2)
         for i, (left, _) in enumerate(q["m"]):
-            picks.append(st.selectbox(left, rights, index=None, placeholder="Choose a partner", key=f"m{nonce}_{i}"))
+            picks.append(mc[i % 2].selectbox(left, rights, index=None, placeholder="Choose a partner", key=f"m{nonce}_{i}"))
         if st.button("Lock in pairs", type="primary", disabled=any(p is None for p in picks), key=f"go{nonce}"):
             answered = True
             ok = all(picks[i] == q["m"][i][1] for i in range(len(picks)))
             given = "; ".join(f"{q['m'][i][0]} → {picks[i]}" for i in range(len(picks)))
     else:
-        show_html(graph_html(q), height=300)
         st.caption(f"Choose the nodes in the order the algorithm visits them ({len(q['a'])} steps).")
         nodes = sorted(q["g"]["n"])
         cols = st.columns(4)
@@ -481,13 +517,11 @@ def ask(run, q, cur, k):
         else:
             resolve(run, q, ok, given)
         st.rerun()
-    st.divider()
-    lifelines(run, q, cur)
 
 
 def graph_html(q):
     g = q["g"]
-    s = ['<body style="margin:0;background:transparent"><svg viewBox="0 0 400 290" width="100%" style="max-width:460px;background:#12101c;border:2px solid #3b3562;border-radius:6px">']
+    s = ['<body style="margin:0;background:transparent"><svg viewBox="0 0 400 290" width="100%" style="max-width:330px;background:#12101c;border:2px solid #3b3562;border-radius:6px">']
     for a, b in g["e"]:
         (x1, y1), (x2, y2) = g["n"][a], g["n"][b]
         s.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#3b3562" stroke-width="3"/>')
@@ -505,12 +539,12 @@ def feedback(run, q, cur, n):
     last = run["hearts"] <= 0
     z, _, k = zone_info(run, run["i"])
     if res["ok"]:
-        st.markdown(f"<div class='fb-ok'><b>Path clear</b><br>+{res['gained']} points ({', '.join(res['parts'])})<br><br>{html.escape(q['w'])}</div>",
+        st.markdown(f"<div class='fb-ok'><b>Path clear</b><br>+{res['gained']} points ({', '.join(res['parts'])})<br>{html.escape(q['w'])}</div>",
                     unsafe_allow_html=True)
     else:
         verdict = "Time is up" if res["reason"] == "time" else ("Hiss! Ember hit water" if k % 2 == 0 else "Sizzle! Tide hit lava")
         correct = html.escape(answer_text(q)).replace("\n", "<br>")
-        st.markdown(f"<div class='fb-no'><b>{verdict}</b><br><br><b>Correct answer</b><br>{correct}<br><br>{html.escape(q['w'])}</div>",
+        st.markdown(f"<div class='fb-no'><b>{verdict}</b><br><br><b>Correct answer</b><br>{correct}<br>{html.escape(q['w'])}</div>",
                     unsafe_allow_html=True)
     label = "See result" if last else "Continue"
     if st.button(label, type="primary", key=f"next{run['nonce']}"):
@@ -537,41 +571,45 @@ def render_result():
     right = sum(1 for l in run["log"] if l["ok"])
     status = run["status"]
     where = f"Chamber {run['zone']} cleared" if run["zone"] else "All six chambers cleared"
-    st.caption(f"{'No lives left' if status == 'fallen' else where} · {run['level']}")
-    st.markdown(f"<h1>{rank_title(run['acc'], status)}</h1>", unsafe_allow_html=True)
-    st.markdown(f"<h1 style='color:#f4c95d;font-size:3.5rem'>{run['score']}</h1>", unsafe_allow_html=True)
-    secs = run["secs"]
-    st.write(f"{right}/{total} correct ({run['acc']}%) · best streak {run['best']} · {max(0, run['hearts'])} lives left · {secs // 60}m {secs % 60}s")
-    a, b = st.columns(2)
-    if a.button("Play again", type="primary"):
-        start_run()
-        st.rerun()
-    if b.button("Change level"):
-        S.screen = "title"
-        st.rerun()
-    left, rightc = st.columns(2, gap="large")
-    with left:
-        st.subheader("By chamber")
-        for z in ZONES:
-            rows = [l for l in run["log"] if l["z"] == z]
-            if rows:
-                good = sum(1 for l in rows if l["ok"])
-                st.progress(good / len(rows), text=f"{ZONES[z][0]}: {good}/{len(rows)}")
-    with rightc:
-        st.subheader("Leaderboard")
-        lb_show()
-    st.subheader("Review the ones you missed")
     missed = [l for l in run["log"] if not l["ok"]]
-    if not missed:
-        st.success("Flawless. Nothing to review.")
-    for l in missed:
-        q = QUESTIONS[l["qid"]]
-        with st.expander(f"{q['k']}: {q['q'][:90]}"):
-            st.markdown(f"<div class='qtext'>{html.escape(q['q'])}</div>", unsafe_allow_html=True)
-            if q["mode"] == "c":
-                st.write("\n".join(f"{LETTERS[i]}. {o}" for i, o in enumerate(q["o"])))
-            st.success("Answer: " + answer_text(q))
-            st.caption(q["w"])
+    secs = run["secs"]
+    left, rightc = st.columns([2, 3], gap="large")
+    with left:
+        st.caption(f"{'No lives left' if status == 'fallen' else where} · {run['level']}")
+        st.markdown(f"<h1>{rank_title(run['acc'], status)}</h1>", unsafe_allow_html=True)
+        st.markdown(f"<div class='big'>{run['score']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='panel'><b>{right}/{total}</b> correct ({run['acc']}%)<br>"
+                    f"Best streak <b>{run['best']}</b> · Lives left <b>{max(0, run['hearts'])}</b><br>"
+                    f"Time <b>{secs // 60}m {secs % 60}s</b></div>", unsafe_allow_html=True)
+        a, b = st.columns(2)
+        if a.button("Play again", type="primary", use_container_width=True):
+            start_run()
+            st.rerun()
+        if b.button("Change level", use_container_width=True):
+            S.screen = "title"
+            st.rerun()
+    with rightc:
+        t1, t2, t3 = st.tabs(["By chamber", "Leaderboard", f"Review missed ({len(missed)})"])
+        with t1:
+            for z in ZONES:
+                rows = [l for l in run["log"] if l["z"] == z]
+                if rows:
+                    good = sum(1 for l in rows if l["ok"])
+                    st.progress(good / len(rows), text=f"{ZONES[z][0]}: {good}/{len(rows)}")
+        with t2:
+            lb_show(height=250)
+        with t3:
+            if not missed:
+                st.success("Flawless. Nothing to review.")
+            else:
+                labels = {f"{i + 1}. {QUESTIONS[l['qid']]['k']}: {QUESTIONS[l['qid']]['q'][:70]}": l["qid"] for i, l in enumerate(missed)}
+                pick = st.selectbox("Pick a question to review", list(labels), label_visibility="collapsed")
+                q = QUESTIONS[labels[pick]]
+                st.markdown(f"<div class='qtext'>{html.escape(q['q'])}</div>", unsafe_allow_html=True)
+                if q["mode"] == "c":
+                    st.write("  \n".join(f"{LETTERS[i]}. {o}" for i, o in enumerate(q["o"])))
+                st.success("Answer: " + answer_text(q))
+                st.caption(q["w"])
 
 
 # ----------------------------------------------------------------------------
