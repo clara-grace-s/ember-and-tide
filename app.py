@@ -70,8 +70,8 @@ html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"], [data-tes
 [data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stSidebar"],
 [data-testid="collapsedControl"], [data-testid="stSidebarCollapsedControl"], footer, #MainMenu { display: none !important; }
 [data-testid="stMainBlockContainer"], .block-container {
-  padding: .6rem 1.4rem .4rem !important; max-width: 1120px !important; height: 100vh; overflow: hidden; }
-[data-testid="stVerticalBlock"] { gap: .5rem !important; }
+  padding: .6rem 1.4rem .4rem !important; max-width: 1600px !important; height: 100vh; overflow: hidden; }
+[data-testid="stVerticalBlock"] { gap: 1.1vh !important; }
 [data-stale="true"] { opacity: 1 !important; }                 /* no grey flash while a rerun is in flight */
 .stMarkdown p { margin: 0 0 .25rem 0; }
 @media (max-width: 760px), (max-height: 560px) {                /* phones and tiny windows: allow scrolling */
@@ -89,41 +89,74 @@ html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"], [data-tes
 /* ---- type ---------------------------------------------------------------- */
 h1, h2, h3 { font-family: 'Bungee', 'Arial Black', sans-serif !important; font-weight: 400 !important;
              letter-spacing: .01em; padding: 0 !important; margin: 0 !important; line-height: 1.1 !important; }
-h1 { font-size: 2.1rem !important; } h2 { font-size: 1.5rem !important; } h3 { font-size: 1.1rem !important; }
+h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1.4rem, 4vh, 2.2rem) !important; } h3 { font-size: clamp(1.1rem, 2.8vh, 1.6rem) !important; }
 .tide-title b { color: #ff7a3d; font-weight: 400; } .tide-title i { color: #35c6d9; font-style: normal; }
-.qtext { font-size: clamp(.95rem, 2.1vh, 1.15rem); white-space: pre-wrap; margin: .1rem 0 .3rem 0;
-         max-height: 34vh; overflow-y: auto; scrollbar-width: thin; }
+.qtext { font-size: clamp(1.05rem, 3.1vh, 1.7rem); line-height: 1.35; white-space: pre-wrap; margin: .4vh 0 .6vh 0;
+         max-height: 26vh; overflow-y: auto; scrollbar-width: thin; }
 .chip { display:inline-block; font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; font-weight:700;
         padding:2px 9px; border:2px solid #3b3562; border-radius:3px; margin-right:6px; color:#a7a1c9; }
 .chip.fmt { color:#f4c95d; border-color:#6b5a22; }
 .chip.ember { color:#ff7a3d; border-color:#a8431a; } .chip.tide { color:#35c6d9; border-color:#1b7f8c; }
 .fb-ok { border:2px solid #6ee7a0; background:#12291f; padding:12px 14px; border-radius:6px; animation: pop .35s ease both; }
 .fb-no { border:2px solid #ff5d6c; background:#2e121a; padding:12px 14px; border-radius:6px; animation: pop .35s ease both; }
-.fb-ok, .fb-no { max-height: 38vh; overflow-y: auto; scrollbar-width: thin; font-size: .95rem; }
+.fb-ok, .fb-no { max-height: 34vh; overflow-y: auto; scrollbar-width: thin; font-size: clamp(.95rem, 2.2vh, 1.2rem); padding: 1.6vh 1.2rem; }
 @keyframes pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
 .tip { border:2px dashed #6b5a22; background:#2c2610; color:#f4c95d; padding:8px 12px; border-radius:6px; font-size:.92rem; }
 
 /* ---- HUD ------------------------------------------------------------------ */
-.hud { display:flex; align-items:center; gap:18px; flex-wrap:wrap; font-size:.9rem; color:#a7a1c9; }
+.hud { display:flex; align-items:center; gap:22px; flex-wrap:wrap; font-size:clamp(.9rem, 2.3vh, 1.2rem); color:#a7a1c9; }
 .hud b { color:#f0ecff; }
-.hud .brand { font-family:'Bungee','Arial Black',sans-serif; font-size:1.05rem; color:#f0ecff; }
+.hud .brand { font-family:'Bungee','Arial Black',sans-serif; font-size:clamp(1.1rem, 3vh, 1.6rem); color:#f0ecff; }
 .hud .brand i { color:#35c6d9; font-style:normal; } .hud .brand em { color:#ff7a3d; font-style:normal; }
 .hud .hearts { color:#ff5d6c; font-size:1.15rem; letter-spacing:.05em; }
-.pbar { height:5px; background:#12101c; border:1px solid #3b3562; border-radius:3px; overflow:hidden; margin-top:2px; }
+.pbar { height:.9vh; min-height:5px; background:#12101c; border:1px solid #3b3562; border-radius:3px; overflow:hidden; margin-top:2px; }
 .pbar > div { height:100%; background:linear-gradient(90deg,#ff7a3d,#f4c95d); transition: width .8s cubic-bezier(.3,.7,.2,1); }
 .cb { display:flex; align-items:center; gap:10px; font-size:.9rem; margin-bottom:.35rem; }
 .cb span:first-child { flex:0 0 11rem; } .cb .pbar { flex:1; height:9px; } .cb span:last-child { flex:0 0 3rem; text-align:right; color:#a7a1c9; }
 .mrow { font-size:.92rem; padding-top:.45rem; }
 
 /* ---- compact controls ----------------------------------------------------- */
-.stButton > button { width: 100%; padding: .3rem .6rem; min-height: 2.3rem; font-size: .9rem; transition: transform .12s ease, filter .12s ease; }
+.stButton > button { width: 100%; padding: .3rem .6rem; min-height: clamp(2.3rem, 5.4vh, 3.3rem); font-size: clamp(.9rem, 2.1vh, 1.1rem); transition: transform .12s ease, filter .12s ease; }
 .stButton > button:not(:disabled):hover { transform: translateY(-1px); }
-[class*="st-key-ans"] [role="radiogroup"] { gap: .3rem; }
-[class*="st-key-ans"] [role="radiogroup"] > label { border: 1px solid #3b3562; border-radius: 6px; padding: .4rem .7rem;
+[class*="st-key-ans"] [role="radiogroup"] { gap: 1vh; }
+[class*="st-key-ans"] [role="radiogroup"] > label { border: 1px solid #3b3562; border-radius: 8px; padding: 1.3vh 1rem;
+  font-size: clamp(.95rem, 2.4vh, 1.3rem);
   margin: 0; transition: background .15s ease, border-color .15s ease; }
 [class*="st-key-ans"] [role="radiogroup"] > label:hover { background: #1d1a3a; border-color: #6b5a22; }
 [class*="st-key-ans"] [role="radiogroup"] > label:has(input:checked) { background:#2a2350; border-color:#f4c95d; }
-[data-testid="stTextInput"] input, [data-baseweb="select"] > div { min-height: 2.3rem; }
+[data-testid="stTextInput"] input, [data-baseweb="select"] > div { min-height: clamp(2.3rem, 5.4vh, 3.2rem); font-size: clamp(.95rem, 2.2vh, 1.2rem); }
+
+/* ---- fill the window: everything is sized from the viewport height ---------- */
+.scn { width:100%; height:28vh; min-height:120px; background:#161330; border-radius:8px; overflow:hidden; }
+.scn svg { display:block; width:100%; height:100%; }
+[class*="st-key-scene_title"] .scn { height:22vh; }
+.gph { width:100%; height:26vh; min-height:140px; }
+.gph svg { display:block; width:100%; height:100%; background:#12101c; border:2px solid #3b3562; border-radius:8px; box-sizing:border-box; }
+
+[class*="st-key-panel"] { --ph: 46vh; min-height: var(--ph) !important; box-sizing: border-box;
+  border: 1px solid #3b3562 !important; border-radius: 10px; background: #161330; padding: 2vh 1.4rem !important;
+  display: flex !important; flex-direction: column; }
+[class*="st-key-panel_t_"] { --ph: 40vh; }
+[class*="st-key-panel_xl"] { --ph: 84vh; }
+[class*="st-key-panel_l"] { justify-content: space-between; }
+[class*="st-key-panel_r"], [class*="st-key-panel_c"] { justify-content: center; }
+[class*="st-key-panel"] .stMarkdown p { font-size: clamp(1rem, 2.4vh, 1.3rem); }
+.tide-title { font-size: clamp(2.2rem, 6.4vh, 3.6rem) !important; }
+
+/* ---- scene animation (inline SVG, so the page CSS drives it) ------------------ */
+.scn .hero.mv { animation: mv .9s cubic-bezier(.5,0,.2,1) .15s both; }
+@keyframes mv { from { transform: translate(var(--fx),var(--gy)) scale(var(--sc)); } to { transform: translate(var(--tx),var(--gy)) scale(var(--sc)); } }
+.scn .mv .hop { animation: hop .9s ease-in-out .15s; }
+@keyframes hop { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-24px); } }
+.scn .bub { animation: rise 1.1s ease-out infinite; }
+.scn .bub:nth-of-type(2n) { animation-delay: .35s; }
+@keyframes rise { from { transform: translateY(8px); opacity: 1; } to { transform: translateY(-16px); opacity: 0; } }
+.scn .door { transform-box: fill-box; transform-origin: 100% 50%; }
+.scn .door.open { transform: scaleX(.14); animation: dopen .7s ease .7s both; }
+@keyframes dopen { from { transform: scaleX(1); } to { transform: scaleX(.14); } }
+.scn .gem { animation: glint 2.4s ease-in-out infinite; }
+@keyframes glint { 50% { opacity: .6; } }
+@media (prefers-reduced-motion: reduce) { .scn * { animation: none !important; } }
 </style>
 """
 
@@ -163,23 +196,7 @@ def hero_svg(kind):
             '<rect x="-9" y="-3" width="7" height="7" rx="2" fill="#12101c"/><rect x="2" y="-3" width="7" height="7" rx="2" fill="#12101c"/>')
 
 
-SCENE_STYLE = """<style>
-html,body{margin:0;height:100%;background:#161330;overflow:hidden}
-svg{display:block;width:100%;height:100%}
-.hero.mv{animation:mv .9s cubic-bezier(.5,0,.2,1) .15s both}
-@keyframes mv{from{transform:translate(var(--fx),var(--gy)) scale(var(--sc))}to{transform:translate(var(--tx),var(--gy)) scale(var(--sc))}}
-.mv .hop{animation:hop .9s ease-in-out .15s}
-@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-24px)}}
-.bub{animation:rise 1.1s ease-out infinite}
-.bub:nth-of-type(2n){animation-delay:.35s}
-@keyframes rise{from{transform:translateY(8px);opacity:1}to{transform:translateY(-16px);opacity:0}}
-.door{transform-box:fill-box;transform-origin:100% 50%}
-.door.open{transform:scaleX(.14);animation:dopen .7s ease .7s both}
-@keyframes dopen{from{transform:scaleX(1)}to{transform:scaleX(.14)}}
-.gem{animation:glint 2.4s ease-in-out infinite}
-@keyframes glint{50%{opacity:.6}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important}}
-</style>"""
+
 
 
 def scene_html(zone, n, stone, door_open, splash_pit, from_stone=None):
@@ -191,11 +208,11 @@ def scene_html(zone, n, stone, door_open, splash_pit, from_stone=None):
     xs = [70 + i * sp for i in range(n + 1)]
     scale = max(0.52, min(1, sp / 110))
     off = min(15, sw * 0.24)
-    s = [f'<svg viewBox="0 36 {W} {H - 36}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">',
+    s = [f'<div class="scn"><svg viewBox="0 8 {W} {H - 8}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">',
          f'<rect y="0" width="{W}" height="{H}" fill="#161330"/>']
-    for r in range(4):
-        s.append(f'<rect x="0" y="{r * 32 + 44}" width="{W}" height="1" fill="#2a2548"/>')
-    s.append(f'<text x="16" y="54" font-family="Arial Black, sans-serif" font-size="13" fill="#a7a1c9">'
+    for r in range(5):
+        s.append(f'<rect x="0" y="{r * 30 + 22}" width="{W}" height="1" fill="#2a2548"/>')
+    s.append(f'<text x="18" y="38" font-family="Arial Black, sans-serif" font-size="16" fill="#a7a1c9">'
              f'{html.escape(ZONES[zone][0].upper())}</text>')
     for i in range(n):
         x1, x2 = xs[i] + sw / 2, xs[i + 1] - sw / 2
@@ -221,8 +238,8 @@ def scene_html(zone, n, stone, door_open, splash_pit, from_stone=None):
         mv = " mv" if from_stone is not None else ""
         s.append(f'<g class="hero{mv}" style="--fx:{fx}px;--tx:{tx}px;--gy:{gy}px;--sc:{scale};'
                  f'transform:translate({tx}px,{gy}px) scale({scale})"><g class="hop">{hero_svg(kind)}</g></g>')
-    s.append("</svg>")
-    return f"<!doctype html><html><head>{SCENE_STYLE}</head><body>{''.join(s)}</body></html>"
+    s.append("</svg></div>")
+    return "".join(s)
 
 
 def countdown_html(remaining):
@@ -414,24 +431,28 @@ def render_title():
     S = st.session_state
     st.markdown(CSS, unsafe_allow_html=True)
     with page("title"):
+        with st.container(key="scene_title"):
+            st.markdown(scene_html(1, 6, 0, False, None), unsafe_allow_html=True)
         st.markdown("<h1 class='tide-title'><b>Ember</b> and <i>Tide</i></h1>", unsafe_allow_html=True)
         st.write("Two heroes, six chambers, one temple of AI concepts. Ember cannot touch water and Tide cannot touch lava. "
                  "Each question is a pit: answer right and your heroes cross, answer wrong and one takes a swim in the wrong liquid.")
-        left, right = st.columns([3, 2], gap="large")
+        left, right = st.columns([3, 2], gap="medium")
         with left:
-            S.name = st.text_input("Hero name for the leaderboard", value=S.get("name", ""), max_chars=18)
-            S.level = st.radio("Pick a level", list(LEVELS), index=list(LEVELS).index(S.get("level", "Medium")),
-                               format_func=lambda k: f"{k}  ({run_size(k, S.get('zone', 0))} questions)", horizontal=True)
-            st.caption(LEVELS[S.level]["text"])
-            names = {0: "All chambers", **{z: f"{z}. {ZONES[z][0]}" for z in ZONES}}
-            S.zone = st.selectbox("Pick where to play", list(names), format_func=lambda z: names[z], index=S.get("zone", 0))
-            if st.button("Enter the temple", type="primary"):
-                start_run()
-                st.rerun()
+            with st.container(key="panel_t_l"):
+                S.name = st.text_input("Hero name for the leaderboard", value=S.get("name", ""), max_chars=18)
+                S.level = st.radio("Pick a level", list(LEVELS), index=list(LEVELS).index(S.get("level", "Medium")),
+                                   format_func=lambda k: f"{k}  ({run_size(k, S.get('zone', 0))} questions)", horizontal=True)
+                st.caption(LEVELS[S.level]["text"])
+                names = {0: "All chambers", **{z: f"{z}. {ZONES[z][0]}" for z in ZONES}}
+                S.zone = st.selectbox("Pick where to play", list(names), format_func=lambda z: names[z], index=S.get("zone", 0))
+                if st.button("Enter the temple", type="primary"):
+                    start_run()
+                    st.rerun()
         with right:
-            st.subheader("Leaderboard")
-            lb_show()
-            st.caption(f"{len(QUESTIONS)} questions · 7 formats · lifelines: Hint, Cull, Freeze, Swap")
+            with st.container(key="panel_t_r"):
+                st.subheader("Leaderboard")
+                lb_show()
+                st.caption(f"{len(QUESTIONS)} questions · 7 formats · lifelines: Hint, Cull, Freeze, Swap")
 
 
 def hud(run):
@@ -470,38 +491,43 @@ def render_run():
             splash = k
 
     with page(f"run_{run['phase']}_{run['i']}_{run['nonce']}"):
-        show_html(scene_html(z, n, stone, door_open, splash, frm), height=SCENE_H)
+        with st.container(key="scene"):
+            st.markdown(scene_html(z, n, stone, door_open, splash, frm), unsafe_allow_html=True)
 
         if run["phase"] == "intro":
             name, topic, tip = ZONES[z]
-            st.caption(f"CHAMBER {z} OF 6 · {n} PIT{'S' if n > 1 else ''}")
-            st.subheader(name)
-            st.write(topic)
-            st.markdown(f"<div class='tip'>{tip}</div>", unsafe_allow_html=True)
-            if st.button("Enter chamber", type="primary"):
-                init_question(run)
-                st.rerun()
+            with st.container(key="panel_c"):
+                st.caption(f"CHAMBER {z} OF 6 · {n} PIT{'S' if n > 1 else ''}")
+                st.subheader(name)
+                st.write(topic)
+                st.markdown(f"<div class='tip'>{tip}</div>", unsafe_allow_html=True)
+                if st.button("Enter chamber", type="primary"):
+                    init_question(run)
+                    st.rerun()
             return
 
         q = QUESTIONS[cur["qid"]]
         hero = "Ember" if k % 2 == 0 else "Tide"
         left, right = st.columns([5, 6], gap="medium")
         with left:
-            st.markdown(f"<span class='chip fmt'>{q['k']}</span><span class='chip'>{DIFF_LABEL[q['d']]}</span>"
-                        f"<span class='chip {hero.lower()}'>{hero}'s turn</span>", unsafe_allow_html=True)
-            if run["phase"] == "ask":
-                remaining = cur["limit"] - (time.time() - cur["start"])
-                show_html(countdown_html(max(0, remaining)), height=26)
-            st.markdown(f"<div class='qtext'>{html.escape(q['q'])}</div>", unsafe_allow_html=True)
-            if run["phase"] == "ask":
-                if cur["hint"]:
-                    st.markdown(f"<div class='tip'>Hint: {html.escape(q['h'])} (20 fewer points)</div>", unsafe_allow_html=True)
-                lifelines(run, q, cur)
+            with st.container(key="panel_l"):
+                with st.container():
+                    st.markdown(f"<span class='chip fmt'>{q['k']}</span><span class='chip'>{DIFF_LABEL[q['d']]}</span>"
+                                f"<span class='chip {hero.lower()}'>{hero}'s turn</span>", unsafe_allow_html=True)
+                    if run["phase"] == "ask":
+                        remaining = cur["limit"] - (time.time() - cur["start"])
+                        show_html(countdown_html(max(0, remaining)), height=30)
+                    st.markdown(f"<div class='qtext'>{html.escape(q['q'])}</div>", unsafe_allow_html=True)
+                    if run["phase"] == "ask" and cur["hint"]:
+                        st.markdown(f"<div class='tip'>Hint: {html.escape(q['h'])} (20 fewer points)</div>", unsafe_allow_html=True)
+                if run["phase"] == "ask":
+                    lifelines(run, q, cur)
         with right:
-            if run["phase"] == "ask":
-                ask(run, q, cur, k)
-            else:
-                feedback(run, q, cur, n)
+            with st.container(key="panel_r"):
+                if run["phase"] == "ask":
+                    ask(run, q, cur, k)
+                else:
+                    feedback(run, q, cur, n)
 
 
 def lifelines(run, q, cur):
@@ -563,7 +589,8 @@ def ask(run, q, cur, k):
             ok = all(picks[i] == q["m"][i][1] for i in range(len(picks)))
             given = "; ".join(f"{q['m'][i][0]} → {picks[i]}" for i in range(len(picks)))
     else:
-        show_html(graph_html(q), height=GRAPH_H)
+        with st.container(key="graphbox"):
+            st.markdown(graph_html(q), unsafe_allow_html=True)
         st.caption(f"Pick the nodes in the order they are visited ({len(q['a'])} steps).")
         nodes = sorted(q["g"]["n"])
         cols = st.columns(4, gap="small")
@@ -585,9 +612,7 @@ def ask(run, q, cur, k):
 
 def graph_html(q):
     g = q["g"]
-    s = ['<body style="margin:0;height:100vh;background:transparent;overflow:hidden">'
-         '<svg viewBox="0 0 400 290" style="width:100%;height:100%;display:block;background:#12101c;'
-         'border:2px solid #3b3562;border-radius:6px;box-sizing:border-box">']
+    s = ['<div class="gph"><svg viewBox="0 0 400 290" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">']
     for a, b in g["e"]:
         (x1, y1), (x2, y2) = g["n"][a], g["n"][b]
         s.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#3b3562" stroke-width="3"/>')
@@ -596,7 +621,7 @@ def graph_html(q):
                  f'<text x="{x}" y="{y + 5}" text-anchor="middle" font-family="monospace" font-weight="700" font-size="16" fill="#f0ecff">{nid}</text>')
         if "h" in g:
             s.append(f'<text x="{x}" y="{y + 38}" text-anchor="middle" font-family="monospace" font-size="12" fill="#a7a1c9">h={g["h"][nid]}</text>')
-    s.append("</svg></body>")
+    s.append("</svg></div>")
     return "".join(s)
 
 
@@ -641,8 +666,8 @@ def render_result():
     secs = run["secs"]
 
     with page("result"):
-        left, rightc = st.columns([2, 3], gap="large")
-        with left:
+        left, rightc = st.columns([2, 3], gap="medium")
+        with left, st.container(key="panel_xl_l"):
             st.caption(f"{'No lives left' if status == 'fallen' else where} · {run['level']}")
             st.markdown(f"<h1>{rank_title(run['acc'], status)}</h1>", unsafe_allow_html=True)
             st.markdown(f"<h1 style='color:#f4c95d;font-size:3.2rem !important'>{run['score']}</h1>", unsafe_allow_html=True)
@@ -654,7 +679,7 @@ def render_result():
             if b.button("Change level"):
                 S.screen = "title"
                 st.rerun()
-        with rightc:
+        with rightc, st.container(key="panel_xl_r"):
             views = ["By chamber", "Leaderboard", f"Review ({len(missed)})"]
             # the review label carries a count, so key the choice on its prefix
             view = st.radio("View", views, horizontal=True, label_visibility="collapsed", key="res_view_ui",
