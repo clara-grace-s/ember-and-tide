@@ -75,7 +75,9 @@ html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"], [data-tes
   height: auto; min-height: 100vh; box-sizing: border-box; overflow: visible; }
 [data-testid="stVerticalBlock"] { gap: clamp(10px, 1.7vh, 18px) !important; }
 [data-stale="true"] { opacity: 1 !important; }                 /* no grey flash while a rerun is in flight */
+[data-testid="stMarkdownContainer"], [data-testid="stMarkdown"] { margin: 0 !important; }
 .stMarkdown p { margin: 0 0 .25rem 0; }
+.scn, .gph, .hud, .tip { margin: 0; }
 @media (max-width: 760px), (max-height: 560px) {                /* phones and tiny windows: allow scrolling */
   html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"], [data-testid="stMain"] { overflow: auto !important; height: auto; }
   [data-testid="stMainBlockContainer"], .block-container { height: auto; overflow: visible; }
@@ -105,7 +107,7 @@ h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1
 .fb-no { border:2px solid #ff5d6c; background:#2e121a; padding:12px 14px; border-radius:6px; animation: pop .35s ease both; }
 .fb-ok, .fb-no { max-height: 34vh; overflow-y: auto; scrollbar-width: thin; font-size: clamp(.95rem, 2.2vh, 1.2rem); padding: 1.6vh 1.2rem; }
 @keyframes pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
-.tip { border:2px dashed #6b5a22; background:#2c2610; color:#f4c95d; padding:8px 12px; border-radius:6px; font-size:.92rem; }
+.tip { border:2px dashed #6b5a22; background:#2c2610; color:#f4c95d; padding:1.4vh 1rem; border-radius:6px; font-size:clamp(.92rem, 2.1vh, 1.15rem); line-height:1.45; }
 
 /* ---- HUD ------------------------------------------------------------------ */
 .hud { display:flex; align-items:center; gap:22px; flex-wrap:wrap; font-size:clamp(.9rem, 2.3vh, 1.2rem); color:#a7a1c9; }
@@ -122,12 +124,12 @@ h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1
 /* ---- compact controls ----------------------------------------------------- */
 .stButton > button { width: 100%; padding: .3rem .6rem; min-height: clamp(2.3rem, 5.4vh, 3.3rem); font-size: clamp(.9rem, 2.1vh, 1.1rem); transition: transform .12s ease, filter .12s ease; }
 .stButton > button:not(:disabled):hover { transform: translateY(-1px); }
-[class*="st-key-ans"] [role="radiogroup"] { gap: 1vh; }
-[class*="st-key-ans"] [role="radiogroup"] > label { border: 1px solid #3b3562; border-radius: 8px; padding: 1.3vh 1rem;
-  font-size: clamp(.95rem, 2.4vh, 1.3rem);
-  margin: 0; transition: background .15s ease, border-color .15s ease; }
-[class*="st-key-ans"] [role="radiogroup"] > label:hover { background: #1d1a3a; border-color: #6b5a22; }
-[class*="st-key-ans"] [role="radiogroup"] > label:has(input:checked) { background:#2a2350; border-color:#f4c95d; }
+[class*="st-key-ans"] [role="radiogroup"] { gap: clamp(8px, 1.4vh, 14px); width: 100%; }
+[class*="st-key-ans"] label[data-baseweb="radio"] { width: 100%; box-sizing: border-box; border: 1px solid #3b3562; border-radius: 8px;
+  padding: clamp(8px, 1.5vh, 16px) 1rem; margin: 0; background: #1b1838; transition: background .15s ease, border-color .15s ease; }
+[class*="st-key-ans"] label[data-baseweb="radio"] p, [class*="st-key-ans"] label[data-baseweb="radio"] div { font-size: clamp(.95rem, 2.3vh, 1.3rem) !important; }
+[class*="st-key-ans"] label[data-baseweb="radio"]:hover { background: #1d1a3a; border-color: #6b5a22; }
+[class*="st-key-ans"] label[data-baseweb="radio"]:has(input:checked) { background: #2a2350; border-color: #f4c95d; }
 [data-testid="stTextInput"] input, [data-baseweb="select"] > div { min-height: clamp(2.3rem, 5.4vh, 3.2rem); font-size: clamp(.95rem, 2.2vh, 1.2rem); }
 
 /* ---- fill the window: everything is sized from the viewport height ---------- */
@@ -137,11 +139,11 @@ h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1
 .gph { width:100%; height:26vh; min-height:140px; }
 .gph svg { display:block; width:100%; height:100%; background:#12101c; border:2px solid #3b3562; border-radius:8px; box-sizing:border-box; }
 
-[class*="st-key-panel"] { --ph: 44vh; min-height: var(--ph) !important; box-sizing: border-box;
+[class*="st-key-panel"] { --ph: 49vh; min-height: var(--ph) !important; box-sizing: border-box;
   border: 1px solid #3b3562 !important; border-radius: 10px; background: #161330; padding: clamp(14px, 2.6vh, 26px) 1.8rem !important; gap: clamp(10px, 1.7vh, 18px);
   display: flex !important; flex-direction: column; }
-[class*="st-key-panel_t_"] { --ph: 36vh; }
-[class*="st-key-panel_xl"] { --ph: 80vh; }
+[class*="st-key-panel_t_"] { --ph: 40vh; }
+[class*="st-key-panel_xl"] { --ph: 82vh; }
 [data-testid="stHorizontalBlock"] { align-items: stretch !important; }
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] { height: 100%; }
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > div:has(> [class*="st-key-panel"]) { flex: 1; display: flex; flex-direction: column; }
