@@ -69,10 +69,10 @@ h1, h2, h3 { font-family: 'Bungee', 'Arial Black', sans-serif !important; font-w
 /* ---- single-screen layout: no header, no sidebar, tight spacing ---- */
 [data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"], footer { display:none !important; }
 [data-testid="stSidebar"], [data-testid="collapsedControl"] { display:none !important; }
-.block-container { padding:.7rem 1.6rem .3rem !important; max-width:1240px !important; }
-[data-testid="stVerticalBlock"] { gap:.45rem !important; }
-h1 { font-size:1.8rem !important; line-height:1.1 !important; padding:0 !important; margin:0 !important; }
-h2, h3 { font-size:1.05rem !important; padding:.1rem 0 !important; margin:0 !important; }
+.block-container { padding:1.2rem 1.6rem .5rem !important; max-width:1240px !important; }
+[data-testid="stVerticalBlock"] { gap:.7rem !important; }
+h1 { font-size:1.9rem !important; line-height:1.2 !important; padding:0 !important; margin:0 0 .4rem 0 !important; }
+h2, h3 { font-size:1.1rem !important; line-height:1.3 !important; padding:0 !important; margin:0 0 .35rem 0 !important; }
 .stButton > button { min-height:2.1rem; padding:.15rem .8rem; }
 [data-testid="stRadio"] [role="radiogroup"] { gap:.1rem; }
 [data-testid="stRadio"] label { padding:.1rem 0; }
@@ -86,6 +86,8 @@ h2, h3 { font-size:1.05rem !important; padding:.1rem 0 !important; margin:0 !imp
 .hud .grow { flex:1; }
 .panel { border:2px solid #3b3562; border-radius:6px; padding:10px 14px; background:#1b1736; }
 .fb-ok, .fb-no { font-size:.95rem; }
+.mini { font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:#a7a1c9; line-height:1.1; }
+.mv { font-size:1.25rem; font-weight:700; color:#f0ecff; line-height:1.3; }
 .big { font-family:'Bungee','Arial Black',sans-serif; font-size:3rem; line-height:1; color:#f4c95d; }
 </style>
 """
@@ -339,11 +341,11 @@ def render_title():
     S = st.session_state
     st.markdown(CSS, unsafe_allow_html=True)
     st.markdown("<h1 class='tide-title'><b>Ember</b> and <i>Tide</i></h1>", unsafe_allow_html=True)
-    st.caption("Two heroes, six chambers, one temple of AI concepts. Ember cannot touch water and Tide cannot touch lava. "
-               "Each question is a pit: answer right and your heroes cross, answer wrong and one takes a swim in the wrong liquid.")
+    st.write("Two heroes, six chambers, one temple of AI concepts. Each question is a pit: answer right and your heroes "
+             "cross, answer wrong and one takes a swim in the wrong liquid.")
     left, right = st.columns([3, 2], gap="large")
     with left:
-        show_html(scene_html(1, 6, 0, False, None), height=160)
+        show_html(scene_html(1, 6, 0, False, None), height=165)
         a, b = st.columns(2)
         S.name = a.text_input("Hero name for the leaderboard", value=S.get("name", ""), max_chars=18)
         names = {0: "All chambers", **{z: f"{z}. {ZONES[z][0]}" for z in ZONES}}
@@ -355,41 +357,44 @@ def render_title():
             start_run()
             st.rerun()
     with right:
-        st.subheader("Leaderboard")
-        lb_show(height=285)
-        st.markdown(f"<div class='panel'><b>{len(QUESTIONS)} questions</b> in 7 formats.<br>"
-                    "Four lifelines per run: <b>Hint</b>, <b>Cull</b>, <b>Freeze</b> and <b>Swap</b>.</div>",
-                    unsafe_allow_html=True)
+        with st.container(border=True):
+            st.subheader("Leaderboard")
+            lb_show(height=200)
+        with st.container(border=True):
+            st.subheader("How to play")
+            st.markdown(
+                "- Ember cannot touch water, Tide cannot touch lava.\n"
+                "- A wrong answer costs a life, a right one earns points for accuracy, speed and streak.\n"
+                "- **Hint**, **Cull** (drop wrong options), **Freeze** (+15 s) and **Swap** (new question) help you out.\n"
+                f"- {len(QUESTIONS)} questions in 7 formats across 6 chambers.")
 
 
 def top_hud(run, z):
-    """One compact strip across the top (replaces the sidebar so the page uses its full width)."""
+    """Top bar built from native Streamlit containers and columns, so it never overlaps the scene."""
     if run["leave"]:
-        c = st.columns([5, 1, 1])
-        c[0].warning("Leave this run? Your progress will be lost.")
-        if c[1].button("Leave"):
-            st.session_state.screen = "title"
-            st.session_state.pop("run", None)
-            st.rerun()
-        if c[2].button("Stay"):
-            run["leave"] = False
-            st.rerun()
+        with st.container(border=True):
+            c = st.columns([5, 1, 1], vertical_alignment="center")
+            c[0].write("Leave this run? Your progress will be lost.")
+            if c[1].button("Leave", use_container_width=True):
+                st.session_state.screen = "title"
+                st.session_state.pop("run", None)
+                st.rerun()
+            if c[2].button("Stay", use_container_width=True):
+                run["leave"] = False
+                st.rerun()
         return
     total = len(run["deck"])
     answered = len(run["log"])
-    c = st.columns([8, 1])
-    c[0].markdown(
-        f"<div class='hud'><div><span class='lbl'>Chamber {z} of 6</span><span class='val'>{ZONES[z][0]}</span></div>"
-        f"<div><span class='lbl'>Lives</span><span class='val hearts'>{hearts_text(run)}</span></div>"
-        f"<div><span class='lbl'>Score</span><span class='val'>{run['score']}</span></div>"
-        f"<div><span class='lbl'>Streak</span><span class='val'>{run['streak']}</span></div>"
-        f"<div class='grow'><span class='lbl'>Question {min(answered + 1, total)} of {total}</span>"
-        f"<div style='height:8px;background:#12101c;border:1px solid #3b3562;border-radius:4px;overflow:hidden;margin-top:4px'>"
-        f"<div style='height:100%;width:{answered / total * 100 if total else 0:.0f}%;background:#35c6d9'></div></div></div></div>",
-        unsafe_allow_html=True)
-    if c[1].button("Menu"):
-        run["leave"] = True
-        st.rerun()
+    with st.container(border=True):
+        c = st.columns([2.4, 1.5, 1, 1, 3.4, 1], vertical_alignment="center")
+        c[0].markdown(f"<div class='mini'>Chamber {z} of 6</div><div class='mv'>{ZONES[z][0]}</div>", unsafe_allow_html=True)
+        c[1].markdown(f"<div class='mini'>Lives</div><div class='mv' style='color:#ff5d6c'>{hearts_text(run)}</div>", unsafe_allow_html=True)
+        c[2].markdown(f"<div class='mini'>Score</div><div class='mv'>{run['score']}</div>", unsafe_allow_html=True)
+        c[3].markdown(f"<div class='mini'>Streak</div><div class='mv'>{run['streak']}</div>", unsafe_allow_html=True)
+        c[4].progress(answered / total if total else 0, text=f"Question {min(answered + 1, total)} of {total}")
+        if c[5].button("Menu", use_container_width=True):
+            run["leave"] = True
+            st.rerun()
 
 
 def render_run():
@@ -406,21 +411,25 @@ def render_run():
         else:
             splash = k
     top_hud(run, z)
-    left, right = st.columns([3, 2], gap="medium")
-    with left:
-        show_html(scene_html(z, n, stone, door_open, splash), height=160)
 
     if run["phase"] == "intro":
         name, topic, tip = ZONES[z]
-        with right:
+        show_html(scene_html(z, n, stone, door_open, splash), height=250)
+        c1, c2 = st.columns([3, 1], gap="large", vertical_alignment="center")
+        with c1:
             st.caption(f"CHAMBER {z} OF 6 · {n} PIT{'S' if n > 1 else ''}")
             st.subheader(name)
             st.write(topic)
             st.markdown(f"<div class='tip'>{tip}</div>", unsafe_allow_html=True)
-            if st.button("Enter chamber", type="primary"):
+        with c2:
+            if st.button("Enter chamber", type="primary", use_container_width=True):
                 init_question(run)
                 st.rerun()
         return
+
+    left, right = st.columns([3, 2], gap="medium")
+    with left:
+        show_html(scene_html(z, n, stone, door_open, splash), height=160)
 
     q = QUESTIONS[cur["qid"]]
     hero = "Ember" if k % 2 == 0 else "Tide"
