@@ -1,7 +1,9 @@
 """Ember and Tide: an AI quiz game for Units I and II of Artificial Intelligence.
 
 Two heroes cross six chambers. Every question is a pit. A correct answer carries the
-heroes across, a wrong answer costs a life. Run with:  streamlit run app.py
+heroes across. A wrong answer costs a life and the heroes stay where they are: the same pit
+comes back with a new question. Each chamber has its own look and its own rule.
+Run with:  streamlit run app.py
 
 Layout notes
 - Every screen is built to fit one viewport (no page scroll). Chrome is hidden, the HUD is a
@@ -42,6 +44,25 @@ ZONES = {
         "A heuristic estimates the distance to the goal. Hill climbing climbs greedily and can get stuck. Best-first and A* keep a frontier."),
     6: ("Vault of Constraints", "CSP and means-end analysis",
         "A CSP has variables, domains and constraints. Means-end analysis shrinks the gap between state and goal by picking operators and sub-goals."),
+}
+
+# Each chamber has its own look (THEMES, drawn in scene_html) and its own rule (RULES, applied in
+# init_question, resolve and lifelines).
+THEMES = {
+    1: dict(bg="#161330", wall="#2a2548", stone="#2c2750", top="#4a4380", accent="#a78bfa", gem="#f4c95d", motif="gate"),
+    2: dict(bg="#0f2230", wall="#1f4156", stone="#1f3a4a", top="#3f7390", accent="#5ad1c3", gem="#7ef0d0", motif="eyes"),
+    3: dict(bg="#1d1a12", wall="#3f3722", stone="#3a3322", top="#6b5d36", accent="#d9a441", gem="#f4c95d", motif="maze"),
+    4: dict(bg="#1a2230", wall="#2c3a4c", stone="#3b3f4a", top="#8a7a5a", accent="#9bb4d6", gem="#e9eefc", motif="fog"),
+    5: dict(bg="#2a1722", wall="#4a2a3c", stone="#47303f", top="#c9a6b8", accent="#ff8fab", gem="#ffd6e0", motif="peaks"),
+    6: dict(bg="#0e1a14", wall="#1d3a2a", stone="#1f3a2c", top="#4f8f6a", accent="#6ee7a0", gem="#b9f5d2", motif="vault"),
+}
+RULES = {
+    1: ("Warm-up", "Your first wrong answer in this chamber costs no life."),
+    2: ("Torchlight", "The streak bonus is doubled."),
+    3: ("Open maps", "Hints are free and do not use up a charge."),
+    4: ("Fog", "10 seconds less on every question, and +25 points for each correct answer."),
+    5: ("Summit wind", "Every correct answer scores x1.25."),
+    6: ("Sealed vault", "All lifelines are locked. Every correct answer scores x1.5."),
 }
 
 # per = questions per chamber, target = difficulty the picker aims for
@@ -168,6 +189,14 @@ h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1
 @keyframes dopen { from { transform: scaleX(1); } to { transform: scaleX(.14); } }
 .scn .gem { animation: glint 2.4s ease-in-out infinite; }
 @keyframes glint { 50% { opacity: .6; } }
+.scn .hero.fall { animation: fall .9s cubic-bezier(.4,0,.6,1) .1s both; }
+@keyframes fall {
+  0%   { transform: translate(var(--tx),var(--gy)) scale(var(--sc)); opacity: 1; }
+  45%  { transform: translate(calc((var(--tx) + var(--px)) / 2),calc(var(--gy) - 34px)) scale(var(--sc)); opacity: 1; }
+  100% { transform: translate(var(--px),calc(var(--gy) + 34px)) scale(var(--sc)); opacity: .35; } }
+.rule { border:2px solid #3b3562; border-left-width:6px; background:#12101c; padding:1.2vh 1rem; border-radius:6px;
+        font-size:clamp(.92rem, 2.1vh, 1.15rem); line-height:1.45; }
+.rule b { color:#f0ecff; }
 @media (prefers-reduced-motion: reduce) { .scn * { animation: none !important; } }
 </style>
 """
@@ -211,9 +240,46 @@ def hero_svg(kind):
 
 
 
+def decor(motif, gy, wall, accent):
+    """Background decoration that gives each chamber its own look."""
+    d = []
+    if motif == "gate":                     # arched gates joined by a thought line
+        for x in (120, 340, 560, 780):
+            d.append(f'<path d="M{x} {gy} V82 A34 34 0 0 1 {x + 68} 82 V{gy}" fill="none" stroke="{wall}" stroke-width="5"/>')
+            d.append(f'<circle cx="{x + 34}" cy="70" r="5" fill="{accent}" opacity=".5"/>')
+        d.append(f'<path d="M154 70 L374 70 L594 70 L814 70" stroke="{accent}" stroke-width="1.5" opacity=".35" fill="none" stroke-dasharray="4 6"/>')
+    elif motif == "eyes":                   # sensors watching the hall
+        for i, x in enumerate(range(110, 960, 130)):
+            y = 78 + (i % 2) * 18
+            d.append(f'<ellipse cx="{x}" cy="{y}" rx="26" ry="13" fill="none" stroke="{wall}" stroke-width="4"/>')
+            d.append(f'<circle cx="{x}" cy="{y}" r="7" fill="{accent}" opacity=".55"/>')
+            d.append(f'<line x1="{x}" y1="{y + 13}" x2="{x}" y2="{gy}" stroke="{wall}" stroke-width="2" stroke-dasharray="3 5"/>')
+    elif motif == "maze":                   # maze walls
+        d.append(f'<path d="M0 100 H90 V60 H170 V100 H250 V50 H340 V95 H420 V60 H520 V105 H600 V55 H690 V100 H770 V60 H860 V95 H1000" fill="none" stroke="{wall}" stroke-width="5"/>')
+        d.append(f'<path d="M0 118 H60 V80 H140 V118 H220 V70 H300 V110 H380 V76 H470 V118 H560 V72 H650 V112 H730 V78 H820 V118 H920 V84 H1000" fill="none" stroke="{accent}" stroke-width="2" opacity=".3"/>')
+    elif motif == "fog":                    # fog banks and a rope line
+        for x, y, rx in ((140, 70, 120), (420, 92, 150), (700, 66, 130), (930, 96, 110)):
+            d.append(f'<ellipse cx="{x}" cy="{y}" rx="{rx}" ry="22" fill="#ffffff" opacity=".07"/>')
+        d.append(f'<path d="M0 {gy - 14} Q250 {gy - 30} 500 {gy - 14} T1000 {gy - 14}" fill="none" stroke="{accent}" stroke-width="2" opacity=".4" stroke-dasharray="2 5"/>')
+    elif motif == "peaks":                  # snowy mountains
+        for x, h, w in ((80, 60, 110), (260, 70, 140), (470, 55, 100), (660, 80, 150), (880, 65, 120)):
+            top = gy - h
+            d.append(f'<polygon points="{x - w},{gy} {x},{top} {x + w},{gy}" fill="{wall}"/>')
+            d.append(f'<polygon points="{x - w * 0.28:.0f},{top + h * 0.28:.0f} {x},{top} {x + w * 0.28:.0f},{top + h * 0.28:.0f}" fill="#ffffff" opacity=".55"/>')
+    elif motif == "vault":                  # riveted vault panels
+        for i in range(7):
+            x = 70 + i * 120
+            d.append(f'<rect x="{x}" y="52" width="86" height="58" rx="4" fill="none" stroke="{wall}" stroke-width="3"/>')
+            for dx, dy in ((12, 12), (74, 12), (12, 46), (74, 46)):
+                d.append(f'<circle cx="{x + dx}" cy="{52 + dy}" r="3" fill="{accent}" opacity=".45"/>')
+    return "".join(d)
+
+
 def scene_html(zone, n, stone, door_open, splash_pit, from_stone=None):
-    """SVG scene. stone = stone the heroes stand on, splash_pit = pit with bubbles (wrong answer),
+    """SVG scene in the chamber's own theme. stone = stone the heroes stand on.
+    splash_pit = pit the active hero just fell into (wrong answer): that hero sinks and stays on this stone.
     from_stone = where the heroes start when they hop to `stone` (correct answer)."""
+    T = THEMES[zone]
     W, H, gy = 1000, 175, 125
     sp = 860 / n
     sw = min(72, sp * 0.58)
@@ -221,10 +287,11 @@ def scene_html(zone, n, stone, door_open, splash_pit, from_stone=None):
     scale = max(0.52, min(1, sp / 110))
     off = min(15, sw * 0.24)
     s = [f'<div class="scn"><svg viewBox="0 8 {W} {H - 8}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">',
-         f'<rect y="0" width="{W}" height="{H}" fill="#161330"/>']
+         f'<rect y="0" width="{W}" height="{H}" fill="{T["bg"]}"/>']
     for r in range(5):
-        s.append(f'<rect x="0" y="{r * 30 + 22}" width="{W}" height="1" fill="#2a2548"/>')
-    s.append(f'<text x="18" y="38" font-family="Arial Black, sans-serif" font-size="16" fill="#a7a1c9">'
+        s.append(f'<rect x="0" y="{r * 30 + 22}" width="{W}" height="1" fill="{T["wall"]}"/>')
+    s.append(decor(T["motif"], gy, T["wall"], T["accent"]))
+    s.append(f'<text x="18" y="38" font-family="Arial Black, sans-serif" font-size="16" fill="{T["accent"]}">'
              f'{html.escape(ZONES[zone][0].upper())}</text>')
     for i in range(n):
         x1, x2 = xs[i] + sw / 2, xs[i + 1] - sw / 2
@@ -237,15 +304,21 @@ def scene_html(zone, n, stone, door_open, splash_pit, from_stone=None):
                      f'<circle class="bub" cx="{cx + 5}" cy="{gy - 8}" r="2.6" fill="#fff"/>'
                      f'<circle class="bub" cx="{cx}" cy="{gy - 18}" r="2" fill="#fff"/>')
         if i >= stone:                           # gem still waiting
-            s.append(f'<polygon class="gem" points="{cx},{gy - 62} {cx + 8},{gy - 52} {cx},{gy - 42} {cx - 8},{gy - 52}" fill="{GOLD}" stroke="#8a6d1e" stroke-width="2"/>')
+            s.append(f'<polygon class="gem" points="{cx},{gy - 62} {cx + 8},{gy - 52} {cx},{gy - 42} {cx - 8},{gy - 52}" fill="{T["gem"]}" stroke="{T["accent"]}" stroke-width="2"/>')
     for i in range(n + 1):
-        s.append(f'<rect x="{xs[i] - sw / 2}" y="{gy}" width="{sw}" height="{H - gy}" fill="#2c2750" stroke="#3b3562" stroke-width="2"/>'
-                 f'<rect x="{xs[i] - sw / 2}" y="{gy}" width="{sw}" height="5" fill="#4a4380"/>')
+        s.append(f'<rect x="{xs[i] - sw / 2}" y="{gy}" width="{sw}" height="{H - gy}" fill="{T["stone"]}" stroke="{T["wall"]}" stroke-width="2"/>'
+                 f'<rect x="{xs[i] - sw / 2}" y="{gy}" width="{sw}" height="5" fill="{T["top"]}"/>')
     dx = xs[n]
-    s.append(f'<rect x="{dx - 22}" y="{gy - 70}" width="44" height="70" rx="4" fill="#12101c" stroke="{GOLD}" stroke-width="3"/>')
-    s.append(f'<rect class="door{" open" if door_open else ""}" x="{dx - 18}" y="{gy - 66}" width="36" height="66" fill="{GOLD}" opacity=".92"/>')
+    s.append(f'<rect x="{dx - 22}" y="{gy - 70}" width="44" height="70" rx="4" fill="#12101c" stroke="{T["accent"]}" stroke-width="3"/>')
+    s.append(f'<rect class="door{" open" if door_open else ""}" x="{dx - 18}" y="{gy - 66}" width="36" height="66" fill="{T["gem"]}" opacity=".92"/>')
+    faller = ("ember", "tide")[splash_pit % 2] if splash_pit is not None else None
     for kind, sign in (("ember", -1), ("tide", 1)):
         tx = xs[stone] + sign * off
+        if kind == faller:                       # wrong answer: the active hero sinks into the pit it tried to cross
+            px = (xs[splash_pit] + xs[splash_pit + 1]) / 2
+            s.append(f'<g class="hero fall" style="--tx:{tx}px;--px:{px}px;--gy:{gy}px;--sc:{scale};opacity:.35;'
+                     f'transform:translate({px}px,{gy + 34}px) scale({scale})"><g>{hero_svg(kind)}</g></g>')
+            continue
         fx = xs[from_stone] + sign * off if from_stone is not None else tx
         mv = " mv" if from_stone is not None else ""
         s.append(f'<g class="hero{mv}" style="--fx:{fx}px;--tx:{tx}px;--gy:{gy}px;--sc:{scale};'
@@ -352,9 +425,24 @@ def build_deck(level, zone):
 
 
 def zone_info(run, i):
+    """(chamber, number of pits in it, pits already crossed in it). A wrong answer does not change k."""
     z = run["deck"][i][0]
-    idxs = [j for j, (zz, _) in enumerate(run["deck"]) if zz == z]
-    return z, len(idxs), i - idxs[0]
+    return z, run["pits"][z], run["k"]
+
+
+def queue_retry(run, q):
+    """A wrong answer does not move the heroes. The same pit comes back with a fresh question from the
+    chamber's reserve, or, when there is none left (Full Temple), with the missed question one step later."""
+    i = run["i"]
+    z = run["deck"][i][0]
+    reserve = run["spare"].get(z, [])
+    if reserve:
+        entry, pos = (z, reserve.pop(0)), i + 1
+    else:
+        same_next = i + 1 < len(run["deck"]) and run["deck"][i + 1][0] == z
+        entry, pos = (z, q["id"]), (i + 2 if same_next else i + 1)
+    run["deck"].insert(pos, entry)
+    run["i"] = i + 1
 
 
 def hearts_text(run):
@@ -374,9 +462,13 @@ def start_run():
     S = st.session_state
     cfg = LEVELS[S.level]
     deck, spare = build_deck(S.level, S.zone)
+    pits = {}
+    for z, _ in deck:
+        pits[z] = pits.get(z, 0) + 1                  # one pit per planned question
     S.run = dict(level=S.level, zone=S.zone, deck=deck, spare=spare, i=0, hearts=cfg["hearts"], max_hearts=cfg["hearts"],
                  score=0, streak=0, best=0, log=[], life=dict(hint=3, cull=2, freeze=2, swap=1),
-                 phase="intro", cur=None, t0=time.time(), nonce=0)
+                 phase="intro", cur=None, t0=time.time(), nonce=0,
+                 pits=pits, total_pits=len(deck), k=0, crossed=0, free_used=False)
     S.screen = "run"
 
 
@@ -385,6 +477,8 @@ def init_question(run):
     q = QUESTIONS[run["deck"][run["i"]][1]]
     run["nonce"] += 1
     limit = LEVELS[run["level"]]["time"] + (20 if q["mode"] in ("g", "m") else 0)
+    if z == 4:                                        # Fog: less time
+        limit = max(10, limit - 10)
     cur = dict(qid=q["id"], start=time.time(), limit=limit, hint=False, culled=False, result=None)
     if q["mode"] == "c":
         order = list(range(len(q["o"])))
@@ -400,25 +494,35 @@ def init_question(run):
 def resolve(run, q, ok, given, reason=""):
     cur = run["cur"]
     z, n, k = zone_info(run, run["i"])
-    gained, parts = 0, []
+    gained, parts, free = 0, [], False
     if ok:
         run["streak"] += 1
         run["best"] = max(run["best"], run["streak"])
         left = max(0, cur["limit"] - (time.time() - cur["start"]))
         base = 60 + 20 * q["d"] - (20 if cur["hint"] else 0)
         speed = round(40 * left / cur["limit"])
-        streak_bonus = min(run["streak"], 5) * 10
-        gained = base + speed + streak_bonus
+        streak_bonus = min(run["streak"], 5) * 10 * (2 if z == 2 else 1)      # Torchlight
+        flat = 25 if z == 4 else 0                                             # Fog
+        mult = {5: 1.25, 6: 1.5}.get(z, 1)                                     # Summit wind, Sealed vault
+        gained = round((base + speed + streak_bonus + flat) * mult)
         run["score"] += gained
         parts = [f"base {base}", f"speed +{speed}", f"streak +{streak_bonus}"]
+        if flat:
+            parts.append(f"fog +{flat}")
+        if mult != 1:
+            parts.append(f"chamber x{mult:g}")
         if run["streak"] % 5 == 0 and run["hearts"] < run["max_hearts"]:
             run["hearts"] += 1
             parts.append("a life restored")
     else:
         run["streak"] = 0
-        run["hearts"] -= 1
+        if z == 1 and not run["free_used"]:                                    # Warm-up: first miss is free
+            run["free_used"] = True
+            free = True
+        else:
+            run["hearts"] -= 1
     run["log"].append(dict(z=z, qid=q["id"], ok=ok, given=given, gained=gained))
-    cur["result"] = dict(ok=ok, gained=gained, parts=parts, reason=reason, given=given)
+    cur["result"] = dict(ok=ok, gained=gained, parts=parts, reason=reason, given=given, free=free)
     run["phase"] = "fb"
 
 
@@ -447,7 +551,8 @@ def render_title():
             st.markdown(scene_html(1, 6, 0, False, None), unsafe_allow_html=True)
         st.markdown("<h1 class='tide-title'><b>Ember</b> and <i>Tide</i></h1>", unsafe_allow_html=True)
         st.write("Two heroes, six chambers, one temple of AI concepts. Ember cannot touch water and Tide cannot touch lava. "
-                 "Each question is a pit: answer right and your heroes cross, answer wrong and one takes a swim in the wrong liquid.")
+                 "Each question is a pit: answer right and your heroes cross. Answer wrong and one falls in, loses a life, and must try the same pit again. "
+                 "Every chamber has its own look and its own rule.")
         left, right = st.columns([3, 2], gap="medium")
         with left:
             with st.container(key="panel_t_l"):
@@ -469,16 +574,16 @@ def render_title():
 
 
 def hud(run):
-    total = len(run["deck"])
+    total = run["total_pits"]
     z = zone_info(run, run["i"])[0]
-    pct = len(run["log"]) / total * 100 if total else 0
+    pct = run["crossed"] / total * 100 if total else 0
     a, b = st.columns([9, 1], vertical_alignment="center")
     a.markdown(
         "<div class='hud'><span class='brand'><em>Ember</em> <i>Tide</i></span>"
-        f"<span>Chamber <b>{z}/6</b></span>"
+        f"<span>Chamber <b>{z}/6</b></span><span>Rule <b>{RULES[z][0]}</b></span>"
         f"<span class='hearts'>{hearts_text(run)}</span>"
         f"<span>Score <b>{run['score']}</b></span><span>Streak <b>{run['streak']}</b></span>"
-        f"<span>{run['level']} · Q <b>{run['i'] + 1}/{total}</b></span></div>"
+        f"<span>{run['level']} · Pits <b>{run['crossed']}/{total}</b></span></div>"
         f"<div class='pbar'><div style='width:{pct:.1f}%'></div></div>", unsafe_allow_html=True)
     with b.popover("Menu"):
         st.caption("Leave this run? Your progress is lost.")
@@ -494,6 +599,12 @@ def render_run():
     st.markdown(CSS, unsafe_allow_html=True)
     hud(run)
     z, n, k = zone_info(run, run["i"])
+    T = THEMES[z]
+    st.markdown(f"<style>[class*='st-key-panel'] {{ border-color: {T['accent']}88 !important; }}"
+                f"[class*='st-key-panel'] h3 {{ color: {T['accent']} !important; }}"
+                f".rule {{ border-left-color: {T['accent']}; }}"
+                f".pbar > div {{ background: linear-gradient(90deg,{T['accent']},{T['gem']}) !important; }}</style>",
+                unsafe_allow_html=True)
     cur = run["cur"]
     stone, door_open, splash, frm = k, False, None, None
     if run["phase"] == "fb" and cur and cur["result"]:
@@ -514,6 +625,8 @@ def render_run():
                 st.subheader(name)
                 st.write(topic)
                 st.markdown(f"<div class='tip'>{tip}</div>", unsafe_allow_html=True)
+                rname, rtext = RULES[z]
+                st.markdown(f"<div class='rule'><b>Chamber rule: {rname}.</b> {rtext}</div>", unsafe_allow_html=True)
                 if st.button("Enter chamber", type="primary"):
                     init_question(run)
                     st.rerun()
@@ -545,15 +658,20 @@ def render_run():
 
 def lifelines(run, q, cur):
     L = run["life"]
+    z = zone_info(run, run["i"])[0]
+    locked = z == 6                                   # Sealed vault: no lifelines
+    free_hint = z == 3                                # Open maps: hints cost no charge
     can_cull = q["mode"] == "c" and len(q["o"]) > 2 and not cur["culled"]
-    can_swap = L["swap"] > 0 and run["spare"].get(zone_info(run, run["i"])[0])
+    can_swap = L["swap"] > 0 and run["spare"].get(z)
     c1, c2, c3, c4 = st.columns(4, gap="small")
-    if c1.button(f"Hint {L['hint']}", disabled=L["hint"] < 1 or cur["hint"], key=f"hint{run['nonce']}",
+    if c1.button("Hint free" if free_hint else f"Hint {L['hint']}", key=f"hint{run['nonce']}",
+                 disabled=locked or cur["hint"] or (L["hint"] < 1 and not free_hint),
                  help="Show a hint (worth 20 fewer points)"):
-        L["hint"] -= 1
+        if not free_hint:
+            L["hint"] -= 1
         cur["hint"] = True
         st.rerun()
-    if c2.button(f"Cull {L['cull']}", disabled=L["cull"] < 1 or not can_cull, key=f"cull{run['nonce']}",
+    if c2.button(f"Cull {L['cull']}", disabled=locked or L["cull"] < 1 or not can_cull, key=f"cull{run['nonce']}",
                  help="Remove wrong options"):
         L["cull"] -= 1
         cur["culled"] = True
@@ -562,17 +680,18 @@ def lifelines(run, q, cur):
         drop = set(wrong[:max(1, min(2, len(q["o"]) - 2))])
         cur["order"] = [o for o in cur["order"] if o not in drop]
         st.rerun()
-    if c3.button(f"Freeze {L['freeze']}", disabled=L["freeze"] < 1, key=f"fr{run['nonce']}", help="Add 15 seconds"):
+    if c3.button(f"Freeze {L['freeze']}", disabled=locked or L["freeze"] < 1, key=f"fr{run['nonce']}", help="Add 15 seconds"):
         L["freeze"] -= 1
         cur["limit"] += 15
         st.rerun()
-    if c4.button(f"Swap {L['swap']}", disabled=not can_swap, key=f"sw{run['nonce']}", help="Swap for another question"):
+    if c4.button(f"Swap {L['swap']}", disabled=locked or not can_swap, key=f"sw{run['nonce']}", help="Swap for another question"):
         L["swap"] -= 1
-        z = zone_info(run, run["i"])[0]
         new_id = run["spare"][z].pop()
         run["deck"][run["i"]] = (z, new_id)
         init_question(run)
         st.rerun()
+    if locked:
+        st.caption("The sealed vault locks every lifeline.")
 
 
 def ask(run, q, cur, k):
@@ -646,24 +765,35 @@ def feedback(run, q, cur, n):
         st.markdown(f"<div class='fb-ok'><b>Path clear</b><br>+{res['gained']} points ({', '.join(res['parts'])})<br><br>{html.escape(q['w'])}</div>",
                     unsafe_allow_html=True)
     else:
+        hero = "Ember" if k % 2 == 0 else "Tide"
         verdict = "Time is up" if res["reason"] == "time" else ("Hiss! Ember hit water" if k % 2 == 0 else "Sizzle! Tide hit lava")
+        if last:
+            note = "No lives left."
+        elif res.get("free"):
+            note = f"Warm-up: no life lost. {hero} climbs out and tries this pit again with a new question."
+        else:
+            note = f"{hero} climbs out and stays on this stone. Try this pit again with a new question."
         correct = html.escape(answer_text(q)).replace("\n", "<br>")
-        st.markdown(f"<div class='fb-no'><b>{verdict}</b><br><br><b>Correct answer</b><br>{correct}<br><br>{html.escape(q['w'])}</div>",
+        st.markdown(f"<div class='fb-no'><b>{verdict}</b><br>{note}<br><br><b>Correct answer</b><br>{correct}<br><br>{html.escape(q['w'])}</div>",
                     unsafe_allow_html=True)
-    label = "See result" if last else "Continue"
+    label = "See result" if last else ("Continue" if res["ok"] else "Try this pit again")
     if st.button(label, type="primary", key=f"next{run['nonce']}"):
         if last:
             finish("fallen")
-        else:
+        elif res["ok"]:
+            run["k"] += 1
+            run["crossed"] += 1
             run["i"] += 1
-            if run["i"] >= len(run["deck"]):
+            if run["crossed"] >= run["total_pits"]:
                 finish("cleared")
+            elif run["k"] >= n:                      # last pit of this chamber crossed
+                run["k"] = 0
+                run["phase"], run["cur"] = "intro", None
             else:
-                nz, _, nk = zone_info(run, run["i"])
-                if nk == 0:
-                    run["phase"], run["cur"] = "intro", None
-                else:
-                    init_question(run)
+                init_question(run)
+        else:                                        # wrong: the heroes do not move
+            queue_retry(run, q)
+            init_question(run)
         st.rerun()
 
 
@@ -675,7 +805,11 @@ def render_result():
     right = sum(1 for l in run["log"] if l["ok"])
     status = run["status"]
     where = f"Chamber {run['zone']} cleared" if run["zone"] else "All six chambers cleared"
-    missed = [l for l in run["log"] if not l["ok"]]
+    missed, seen = [], set()
+    for l in run["log"]:                             # a question missed twice is reviewed once
+        if not l["ok"] and l["qid"] not in seen:
+            seen.add(l["qid"])
+            missed.append(l)
     secs = run["secs"]
 
     with page("result"):
