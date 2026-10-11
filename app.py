@@ -177,9 +177,7 @@ h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1
 .tide-title { font-size: clamp(2.2rem, 6.4vh, 3.6rem) !important; }
 
 /* ---- scene animation (inline SVG, so the page CSS drives it) ------------------ */
-.scn .hero.mv { animation: mv .9s cubic-bezier(.5,0,.2,1) .15s both; }
-@keyframes mv { from { transform: translate(var(--fx),var(--gy)) scale(var(--sc)); } to { transform: translate(var(--tx),var(--gy)) scale(var(--sc)); } }
-.scn .mv .hop { animation: hop .9s ease-in-out .15s; }
+.scn .hop { animation: hop .9s ease-in-out .15s; }
 @keyframes hop { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-24px); } }
 .scn .bub { animation: rise 1.1s ease-out infinite; }
 .scn .bub:nth-of-type(2n) { animation-delay: .35s; }
@@ -189,11 +187,6 @@ h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1
 @keyframes dopen { from { transform: scaleX(1); } to { transform: scaleX(.14); } }
 .scn .gem { animation: glint 2.4s ease-in-out infinite; }
 @keyframes glint { 50% { opacity: .6; } }
-.scn .hero.fall { animation: fall .9s cubic-bezier(.4,0,.6,1) .1s both; }
-@keyframes fall {
-  0%   { transform: translate(var(--tx),var(--gy)) scale(var(--sc)); opacity: 1; }
-  45%  { transform: translate(calc((var(--tx) + var(--px)) / 2),calc(var(--gy) - 34px)) scale(var(--sc)); opacity: 1; }
-  100% { transform: translate(var(--px),calc(var(--gy) + 34px)) scale(var(--sc)); opacity: .35; } }
 .rule { border:2px solid #3b3562; border-left-width:6px; background:#12101c; padding:1.2vh 1rem; border-radius:6px;
         font-size:clamp(.92rem, 2.1vh, 1.15rem); line-height:1.45; }
 .rule b { color:#f0ecff; }
@@ -312,19 +305,32 @@ def scene_html(zone, n, stone, door_open, splash_pit, from_stone=None):
     s.append(f'<rect x="{dx - 22}" y="{gy - 70}" width="44" height="70" rx="4" fill="#12101c" stroke="{T["accent"]}" stroke-width="3"/>')
     s.append(f'<rect class="door{" open" if door_open else ""}" x="{dx - 18}" y="{gy - 66}" width="36" height="66" fill="{T["gem"]}" opacity=".92"/>')
     faller = ("ember", "tide")[splash_pit % 2] if splash_pit is not None else None
+    # The hop and the fall are keyframes written with plain numbers. Streamlit's markdown sanitiser removes CSS
+    # custom properties (--x) from inline styles, so keyframes that read var(--x) would leave the heroes invisible.
+    uid = f"{zone}_{n}_{stone}_{from_stone}_{splash_pit}"
+    kf = []
     for kind, sign in (("ember", -1), ("tide", 1)):
         tx = xs[stone] + sign * off
+        here = f"transform:translate({tx}px,{gy}px) scale({scale})"
         if kind == faller:                       # wrong answer: the active hero sinks into the pit it tried to cross
             px = (xs[splash_pit] + xs[splash_pit + 1]) / 2
-            s.append(f'<g class="hero fall" style="--tx:{tx}px;--px:{px}px;--gy:{gy}px;--sc:{scale};opacity:.35;'
-                     f'transform:translate({px}px,{gy + 34}px) scale({scale})"><g>{hero_svg(kind)}</g></g>')
+            name = f"fall_{kind}_{uid}"
+            kf.append(f"@keyframes {name}{{0%{{transform:translate({tx}px,{gy}px) scale({scale});opacity:1}}"
+                      f"45%{{transform:translate({(tx + px) / 2}px,{gy - 34}px) scale({scale});opacity:1}}"
+                      f"100%{{transform:translate({px}px,{gy + 34}px) scale({scale});opacity:.35}}}}")
+            s.append(f'<g class="hero" style="transform:translate({px}px,{gy + 34}px) scale({scale});opacity:.35;'
+                     f'animation:{name} .9s cubic-bezier(.4,0,.6,1) .1s both"><g>{hero_svg(kind)}</g></g>')
             continue
-        fx = xs[from_stone] + sign * off if from_stone is not None else tx
-        mv = " mv" if from_stone is not None else ""
-        s.append(f'<g class="hero{mv}" style="--fx:{fx}px;--tx:{tx}px;--gy:{gy}px;--sc:{scale};'
-                 f'transform:translate({tx}px,{gy}px) scale({scale})"><g class="hop">{hero_svg(kind)}</g></g>')
+        anim = ""
+        if from_stone is not None:               # correct answer: hop from the previous stone
+            fx = xs[from_stone] + sign * off
+            name = f"mv_{kind}_{uid}"
+            kf.append(f"@keyframes {name}{{from{{transform:translate({fx}px,{gy}px) scale({scale})}}"
+                      f"to{{transform:translate({tx}px,{gy}px) scale({scale})}}}}")
+            anim = f";animation:{name} .9s cubic-bezier(.5,0,.2,1) .15s both"
+        s.append(f'<g class="hero" style="{here}{anim}"><g class="{"hop" if from_stone is not None else ""}">{hero_svg(kind)}</g></g>')
     s.append("</svg></div>")
-    return "".join(s)
+    return (f"<style>{''.join(kf)}</style>" if kf else "") + "".join(s)
 
 
 def countdown_html(remaining):
@@ -458,6 +464,11 @@ def rank_title(acc, status):
 # ----------------------------------------------------------------------------
 # Run control
 # ----------------------------------------------------------------------------
+def clean_name(raw):
+    """Hero name: any text (a single character is fine), trimmed with inner spaces collapsed. Empty means not entered."""
+    return re.sub(r"\s+", " ", (raw or "")).strip()[:18]
+
+
 def start_run():
     S = st.session_state
     cfg = LEVELS[S.level]
@@ -533,7 +544,7 @@ def finish(status):
     right = sum(1 for l in run["log"] if l["ok"])
     acc = round(right / total * 100) if total else 0
     label = run["level"] + (f' · C{run["zone"]}' if run["zone"] else "")
-    lb_add(dict(name=S.get("name") or "Hero", score=run["score"], level=label, acc=acc))
+    lb_add(dict(name=clean_name(S.get("name")) or "Hero", score=run["score"], level=label, acc=acc))
     run["status"], run["acc"], run["secs"] = status, acc, round(time.time() - run["t0"])
     S["rev"] = 0
     S["res_view"] = "By chamber"
@@ -557,15 +568,20 @@ def render_title():
         with left:
             with st.container(key="panel_t_l"):
                 c1, c2 = st.columns(2, gap="medium")
-                S.name = c1.text_input("Hero name for the leaderboard", value=S.get("name", ""), max_chars=18)
+                S.name = c1.text_input("Hero name for the leaderboard", value=S.get("name", ""), max_chars=18, placeholder="Name or character")
                 names = {0: "All chambers", **{z: f"{z}. {ZONES[z][0]}" for z in ZONES}}
                 S.zone = c2.selectbox("Pick where to play", list(names), format_func=lambda z: names[z], index=S.get("zone", 0))
                 S.level = st.radio("Pick a level", list(LEVELS), index=list(LEVELS).index(S.get("level", "Medium")),
                                    format_func=lambda k: f"{k} ({run_size(k, S.zone)})", horizontal=True)
                 st.caption(f"{LEVELS[S.level]['text']}  ·  {run_size(S.level, S.zone)} questions")
-                if st.button("Enter the temple", type="primary"):
-                    start_run()
-                    st.rerun()
+                valid = bool(clean_name(S.name))
+                if not valid:
+                    st.caption("Enter a name or a character to start.")
+                if st.button("Enter the temple", type="primary", disabled=not valid):
+                    if clean_name(S.name):                  # re-check on the server, the disabled state is only cosmetic
+                        S.name = clean_name(S.name)
+                        start_run()
+                        st.rerun()
         with right:
             with st.container(key="panel_t_r"):
                 st.subheader("Leaderboard")
