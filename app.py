@@ -3,6 +3,7 @@
 Two heroes cross six chambers. Every question is a pit. A correct answer carries the
 heroes across. A wrong answer costs a life and the heroes stay where they are: the same pit
 comes back with a new question. Each chamber has its own look and its own rule.
+When the timer runs out the answer counts as wrong and the game moves on by itself.
 Run with:  streamlit run app.py
 
 Layout notes
@@ -80,6 +81,9 @@ LB_FILE = Path(__file__).with_name("leaderboard.json")
 EMBER, TIDE, GOLD = "#ff7a3d", "#35c6d9", "#f4c95d"
 SCENE_H = 142      # px height of the pit scene
 GRAPH_H = 178      # px height of the graph picture
+TIMEOUT_REVEAL = 3  # seconds the "time is up" screen (fall + correct answer) stays before the next question; 0 = instant
+
+fragment = getattr(st, "fragment", None) or st.experimental_fragment
 
 CSS = """
 <style>
@@ -129,6 +133,9 @@ h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1
 .fb-no { border:2px solid #ff5d6c; background:#2e121a; padding:12px 14px; border-radius:6px; animation: pop .35s ease both; }
 .fb-ok, .fb-no { max-height: 34vh; overflow-y: auto; scrollbar-width: thin; font-size: clamp(.95rem, 2.2vh, 1.2rem); padding: 1.6vh 1.2rem; }
 @keyframes pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+.autobar { height: 6px; margin-top: 1.2vh; background: #12101c; border: 1px solid #5a2430; border-radius: 3px; overflow: hidden; }
+.autobar > div { height: 100%; width: 0; background: #ff5d6c; animation: autofill linear both; }
+@keyframes autofill { from { width: 0; } to { width: 100%; } }
 .tip { border:2px dashed #6b5a22; background:#2c2610; color:#f4c95d; padding:1.4vh 1rem; border-radius:6px; font-size:clamp(.92rem, 2.1vh, 1.15rem); line-height:1.45; }
 
 /* ---- HUD ------------------------------------------------------------------ */
@@ -190,7 +197,7 @@ h1 { font-size: clamp(1.8rem, 5vh, 2.8rem) !important; } h2 { font-size: clamp(1
 .rule { border:2px solid #3b3562; border-left-width:6px; background:#12101c; padding:1.2vh 1rem; border-radius:6px;
         font-size:clamp(.92rem, 2.1vh, 1.15rem); line-height:1.45; }
 .rule b { color:#f0ecff; }
-@media (prefers-reduced-motion: reduce) { .scn * { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .scn * { animation: none !important; } .autobar > div { animation: none !important; width: 100%; } }
 </style>
 """
 
@@ -228,9 +235,6 @@ def hero_svg(kind):
             '<circle cx="-4" cy="-20" r="3.4" fill="#fff"/><circle cx="4" cy="-20" r="3.4" fill="#fff"/>'
             '<circle cx="-3.2" cy="-19.6" r="1.6" fill="#12101c"/><circle cx="4.8" cy="-19.6" r="1.6" fill="#12101c"/>'
             '<rect x="-9" y="-3" width="7" height="7" rx="2" fill="#12101c"/><rect x="2" y="-3" width="7" height="7" rx="2" fill="#12101c"/>')
-
-
-
 
 
 def decor(motif, gy, wall, accent):
@@ -533,8 +537,59 @@ def resolve(run, q, ok, given, reason=""):
         else:
             run["hearts"] -= 1
     run["log"].append(dict(z=z, qid=q["id"], ok=ok, given=given, gained=gained))
-    cur["result"] = dict(ok=ok, gained=gained, parts=parts, reason=reason, given=given, free=free)
+    cur["result"] = dict(ok=ok, gained=gained, parts=parts, reason=reason, given=given, free=free,
+                         auto_at=(time.time() + TIMEOUT_REVEAL) if reason == "time" else None)
     run["phase"] = "fb"
+
+
+def advance(run, q):
+    """Leave the feedback screen: the same step the Continue button takes. Used by the button and by the timeout."""
+    res = run["cur"]["result"]
+    z, n, k = zone_info(run, run["i"])
+    if run["hearts"] <= 0:
+        finish("fallen")
+    elif res["ok"]:
+        run["k"] += 1
+        run["crossed"] += 1
+        run["i"] += 1
+        if run["crossed"] >= run["total_pits"]:
+            finish("cleared")
+        elif run["k"] >= n:                          # last pit of this chamber crossed
+            run["k"] = 0
+            run["phase"], run["cur"] = "intro", None
+        else:
+            init_question(run)
+    else:                                            # wrong: the heroes do not move
+        queue_retry(run, q)
+        init_question(run)
+
+
+@fragment(run_every=1)
+def timeout_watch(nonce):
+    """Runs once a second while a question is open. When the time is up the answer counts as wrong and the game
+    moves on by itself (no click needed)."""
+    run = st.session_state.get("run")
+    if not run or run["phase"] != "ask" or run["nonce"] != nonce:
+        return
+    cur = run["cur"]
+    if time.time() - cur["start"] >= cur["limit"]:
+        q = QUESTIONS[cur["qid"]]
+        resolve(run, q, False, "(ran out of time)", "time")
+        if TIMEOUT_REVEAL <= 0:
+            advance(run, q)
+        st.rerun()
+
+
+@fragment(run_every=1)
+def auto_continue(nonce):
+    """After a timeout, show the correct answer for TIMEOUT_REVEAL seconds, then go on without a click."""
+    run = st.session_state.get("run")
+    if not run or run["phase"] != "fb" or run["nonce"] != nonce:
+        return
+    res = run["cur"]["result"]
+    if res.get("auto_at") and time.time() >= res["auto_at"]:
+        advance(run, QUESTIONS[run["cur"]["qid"]])
+        st.rerun()
 
 
 def finish(status):
@@ -562,7 +617,7 @@ def render_title():
             st.markdown(scene_html(1, 6, 0, False, None), unsafe_allow_html=True)
         st.markdown("<h1 class='tide-title'><b>Ember</b> and <i>Tide</i></h1>", unsafe_allow_html=True)
         st.write("Two heroes, six chambers, one temple of AI concepts. Ember cannot touch water and Tide cannot touch lava. "
-                 "Each question is a pit: answer right and your heroes cross. Answer wrong and one falls in, loses a life, and must try the same pit again. "
+                 "Each question is a pit: answer right and your heroes cross. Answer wrong, or run out of time, and one falls in, loses a life, and must try the same pit again. "
                  "Every chamber has its own look and its own rule.")
         left, right = st.columns([3, 2], gap="medium")
         with left:
@@ -670,6 +725,8 @@ def render_run():
                     ask(run, q, cur, k)
                 else:
                     feedback(run, q, cur, n)
+        if run["phase"] == "ask":
+            timeout_watch(run["nonce"])             # moves on by itself when the timer reaches zero
 
 
 def lifelines(run, q, cur):
@@ -777,6 +834,7 @@ def feedback(run, q, cur, n):
     res = cur["result"]
     last = run["hearts"] <= 0
     z, _, k = zone_info(run, run["i"])
+    auto = bool(res.get("auto_at")) and TIMEOUT_REVEAL > 0
     if res["ok"]:
         st.markdown(f"<div class='fb-ok'><b>Path clear</b><br>+{res['gained']} points ({', '.join(res['parts'])})<br><br>{html.escape(q['w'])}</div>",
                     unsafe_allow_html=True)
@@ -790,27 +848,15 @@ def feedback(run, q, cur, n):
         else:
             note = f"{hero} climbs out and stays on this stone. Try this pit again with a new question."
         correct = html.escape(answer_text(q)).replace("\n", "<br>")
-        st.markdown(f"<div class='fb-no'><b>{verdict}</b><br>{note}<br><br><b>Correct answer</b><br>{correct}<br><br>{html.escape(q['w'])}</div>",
+        bar = f"<div class='autobar'><div style='animation-duration:{TIMEOUT_REVEAL}s'></div></div>" if auto else ""
+        st.markdown(f"<div class='fb-no'><b>{verdict}</b><br>{note}<br><br><b>Correct answer</b><br>{correct}<br><br>{html.escape(q['w'])}{bar}</div>",
                     unsafe_allow_html=True)
-    label = "See result" if last else ("Continue" if res["ok"] else "Try this pit again")
+    label = "See result" if last else ("Continue" if res["ok"] else ("Next question" if auto else "Try this pit again"))
     if st.button(label, type="primary", key=f"next{run['nonce']}"):
-        if last:
-            finish("fallen")
-        elif res["ok"]:
-            run["k"] += 1
-            run["crossed"] += 1
-            run["i"] += 1
-            if run["crossed"] >= run["total_pits"]:
-                finish("cleared")
-            elif run["k"] >= n:                      # last pit of this chamber crossed
-                run["k"] = 0
-                run["phase"], run["cur"] = "intro", None
-            else:
-                init_question(run)
-        else:                                        # wrong: the heroes do not move
-            queue_retry(run, q)
-            init_question(run)
+        advance(run, q)
         st.rerun()
+    if auto:
+        auto_continue(run["nonce"])                 # goes on by itself when the bar is full
 
 
 def render_result():
